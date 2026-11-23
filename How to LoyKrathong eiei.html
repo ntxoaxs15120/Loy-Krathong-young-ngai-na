@@ -1,0 +1,2781 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ลอยกระทงด้วยกัน | ??? &amp; วาร์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #070b24;
+    --sky-mid: #161844;
+    --sky-bot: #272259;
+    --gold: #ffd074;
+    --gold-deep: #e09f3e;
+    --cream: #fff8eb;
+    --cream-soft: rgba(255, 248, 235, 0.94);
+    --brown-dark: #2d1e18;
+    --brown-warm: #8c4f2b;
+    --pink: #ff9ec4;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--sky-top);
+    color: var(--cream);
+    font-family: 'Mali', sans-serif;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* แคนวาสหลักสำหรับท้องฟ้า แม่น้ำ โคมลอย กระทง และพลุ */
+  canvas#scene {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+  }
+
+  /* แถบเครื่องมือด้านบน (เสียง & กิมมิคด่วน) */
+  .top-bar {
+    position: fixed;
+    top: calc(var(--safe-top) + 12px);
+    left: 14px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .top-group {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    pointer-events: auto;
+  }
+
+  .pill-btn {
+    background: rgba(20, 22, 58, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(255, 208, 116, 0.45);
+    color: var(--cream);
+    font: 600 13px 'Mali', sans-serif;
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    transition: transform 0.16s ease, background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .pill-btn:active {
+    transform: scale(0.93);
+  }
+
+  .pill-btn.active {
+    background: rgba(255, 208, 116, 0.24);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* คำใบ้แตะท้องฟ้าจุดพลุ */
+  .sky-hint {
+    position: fixed;
+    top: calc(var(--safe-top) + 98px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12.5px;
+    color: rgba(255, 248, 235, 0.72);
+    background: rgba(10, 13, 40, 0.45);
+    padding: 4px 12px;
+    border-radius: 999px;
+    z-index: 10;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.6s ease;
+  }
+
+  /* สะพานไม้ท่าน้ำ */
+  .pier-wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 22%;
+    min-height: 135px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  /* แสงไฟอุ่นๆ จากท่าน้ำที่ส่องกระทบตัวละครและพื้นไม้ */
+  .pier-wrap::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -54px;
+    transform: translateX(-50%);
+    width: min(82vw, 480px);
+    height: 76px;
+    background: radial-gradient(ellipse at center, rgba(255, 206, 115, 0.24) 0%, rgba(255, 165, 95, 0.08) 52%, rgba(255, 165, 95, 0) 78%);
+    pointer-events: none;
+  }
+
+  .pier-deck {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(255, 214, 130, 0.14) 0%, rgba(255, 214, 130, 0) 34%),
+      repeating-linear-gradient(
+        90deg,
+        rgba(38, 22, 14, 0.28) 0px,
+        rgba(38, 22, 14, 0.28) 2px,
+        transparent 2px,
+        transparent 46px
+      ),
+      linear-gradient(180deg, #7c5138 0%, #5c3a27 38%, #3c2418 100%);
+    border-top: 5px solid #9e6b4b;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.45);
+  }
+
+  /* เสาโคมไฟท่าน้ำซ้ายขวา */
+  .pier-post {
+    position: absolute;
+    bottom: 72%;
+    width: 14px;
+    height: 82px;
+    background: linear-gradient(90deg, #5e3b28, #8c5c40, #4a2d1e);
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .pier-post.left { left: 7%; }
+  .pier-post.right { right: 7%; }
+
+  /* สายไฟประดับอุ่นๆ เชื่อมระหว่างเสาท่าน้ำ */
+  .pier-string-lights {
+    position: absolute;
+    bottom: calc(72% + 66px);
+    left: 7%;
+    right: 7%;
+    height: 22px;
+    border-bottom: 1.5px dashed rgba(255, 214, 130, 0.45);
+    border-radius: 0 0 50% 50%;
+    pointer-events: none;
+  }
+
+  .pier-lantern {
+    position: absolute;
+    top: -26px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 32px;
+    border-radius: 10px;
+    background: radial-gradient(circle at 50% 45%, #fff7d6 10%, #ffc45e 65%, #e67e22 100%);
+    box-shadow: 0 0 22px 6px rgba(255, 196, 94, 0.65);
+    animation: lanternGlow 2.8s ease-in-out infinite alternate;
+  }
+  .pier-lantern::before, .pier-lantern::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    height: 4px;
+    background: #4a2d1e;
+    border-radius: 2px;
+  }
+  .pier-lantern::before { top: -2px; }
+  .pier-lantern::after { bottom: -2px; }
+
+  @keyframes lanternGlow {
+    0% { filter: brightness(0.95); transform: translateX(-50%) scale(0.98); }
+    100% { filter: brightness(1.12); transform: translateX(-50%) scale(1.03); }
+  }
+
+  /* โซนตัวละคร ??? & วาร์ */
+  .chars-stage {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16% + 4px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: clamp(14px, 5vw, 34px);
+    z-index: 6;
+    filter: drop-shadow(0 12px 22px rgba(4, 6, 22, 0.55));
+    transition: opacity 0.8s ease;
+  }
+
+  .char-box {
+    position: relative;
+    width: clamp(112px, 28vw, 136px);
+    height: clamp(160px, 40vw, 192px);
+    cursor: pointer;
+    transform-origin: bottom center;
+    animation: idleBreathe 3.4s ease-in-out infinite;
+    transition: filter 0.3s ease, transform 0.25s ease;
+  }
+
+  .char-box.var {
+    animation-delay: -1.7s;
+  }
+
+  .char-box:active {
+    transform: scale(0.95);
+  }
+
+  /* ออร่าและจังหวะเด้งตอนกำลังพูด */
+  .char-box.speaking {
+    filter: drop-shadow(0 0 14px rgba(255, 214, 128, 0.65));
+    animation: talkBounce 0.65s ease-in-out infinite alternate;
+  }
+
+  .char-box.happy-pop {
+    animation: happyJump 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes idleBreathe {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-3px) rotate(0.6deg); }
+  }
+
+  @keyframes talkBounce {
+    0% { transform: translateY(0) scale(1); }
+    100% { transform: translateY(-6px) scale(1.025); }
+  }
+
+  @keyframes happyJump {
+    0% { transform: translateY(0) scale(1); }
+    45% { transform: translateY(-16px) scale(1.06); }
+    100% { transform: translateY(0) scale(1); }
+  }
+
+  /* กะพริบตา SVG */
+  .eye-blink {
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: blinkAnim 4.8s infinite;
+  }
+  .var .eye-blink {
+    animation-delay: 2.1s;
+  }
+
+  @keyframes blinkAnim {
+    0%, 94%, 100% { transform: scaleY(1); }
+    97% { transform: scaleY(0.08); }
+  }
+
+  /* ป้ายชื่อใต้ตัวละคร */
+  .name-tag {
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(35, 22, 16, 0.82);
+    border: 1px solid rgba(255, 208, 116, 0.45);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* ข้อความแซวลอยขึ้นเวลาแตะตัวละคร */
+  .emote-pop {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--cream);
+    color: var(--brown-dark);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 11px;
+    border-radius: 999px;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    animation: floatUpFade 1.5s ease-out forwards;
+    z-index: 15;
+  }
+
+  @keyframes floatUpFade {
+    0% { opacity: 0; transform: translate(-50%, 6px) scale(0.85); }
+    20% { opacity: 1; transform: translate(-50%, -4px) scale(1.02); }
+    80% { opacity: 1; transform: translate(-50%, -18px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -28px) scale(0.95); }
+  }
+
+  /* หน้าปกเริ่มต้น */
+  .hero-title {
+    position: fixed;
+    top: 16%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 0 20px;
+    z-index: 12;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+  }
+
+  .hero-title.hide {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-12px);
+  }
+
+  .hero-badge {
+    display: inline-block;
+    background: rgba(255, 208, 116, 0.16);
+    border: 1px solid rgba(255, 208, 116, 0.45);
+    color: var(--gold);
+    font-size: 13px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+
+  .hero-title h1 {
+    font-size: clamp(28px, 7.5vw, 38px);
+    margin: 0 0 6px;
+    color: var(--gold);
+    font-weight: 700;
+    text-shadow: 0 4px 20px rgba(255, 199, 102, 0.38);
+  }
+
+  .hero-title p {
+    margin: 0;
+    font-size: 18px;
+    color: var(--cream);
+    opacity: 0.92;
+  }
+
+  /* กล่องบทสนทนา */
+  .dialogue-bubble {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16% + clamp(172px, 42vw, 206px));
+    transform: translateX(-50%);
+    width: min(88vw, 360px);
+    background: var(--cream-soft);
+    color: var(--brown-dark);
+    border-radius: 20px;
+    padding: 13px 18px;
+    font-size: 16px;
+    line-height: 1.55;
+    text-align: center;
+    box-shadow: 0 10px 28px rgba(4, 6, 24, 0.45);
+    border: 2px solid rgba(255, 208, 116, 0.7);
+    z-index: 14;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .dialogue-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0;
+    border-style: solid;
+    border-color: var(--cream-soft) transparent transparent;
+    transition: left 0.3s ease;
+  }
+
+  .dialogue-bubble.speaker-oat::after { left: 32%; }
+  .dialogue-bubble.speaker-var::after { left: 68%; }
+
+  .dialogue-bubble b {
+    display: inline-block;
+    font-size: 13.5px;
+    color: #fff;
+    background: var(--brown-warm);
+    padding: 1px 10px;
+    border-radius: 999px;
+    margin-bottom: 5px;
+  }
+
+  /* แผงปรับแต่งกระทง & คำอธิษฐาน (ขั้นตอนก่อนปล่อย) */
+  .prep-panel {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--safe-bot) + 68px);
+    transform: translateX(-50%);
+    width: min(92vw, 390px);
+    background: rgba(16, 19, 52, 0.84);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255, 208, 116, 0.45);
+    border-radius: 20px;
+    padding: 10px 12px;
+    z-index: 18;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+
+  .color-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .color-chip {
+    font: 600 12.5px 'Mali', sans-serif;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    padding: 5px 11px;
+    background: rgba(255, 248, 235, 0.92);
+    color: var(--brown-dark);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  .color-chip .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .color-chip[aria-pressed="true"] {
+    border-color: var(--gold);
+    background: #fff;
+    box-shadow: 0 0 0 2px var(--gold);
+    transform: translateY(-1px);
+  }
+
+  .wish-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .wish-input {
+    flex: 1;
+    min-width: 0;
+    font: 400 13.5px 'Mali', sans-serif;
+    background: rgba(255, 248, 235, 0.96);
+    color: var(--brown-dark);
+    border: 1.5px solid rgba(255, 208, 116, 0.6);
+    border-radius: 999px;
+    padding: 7px 14px;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .wish-input::placeholder {
+    color: #967c6e;
+  }
+
+  .wish-tags {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .wish-tags::-webkit-scrollbar { display: none; }
+
+  .tag-chip {
+    font: 400 11.5px 'Mali', sans-serif;
+    background: rgba(255, 208, 116, 0.18);
+    color: var(--gold);
+    border: 1px solid rgba(255, 208, 116, 0.35);
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tag-chip:active {
+    background: rgba(255, 208, 116, 0.35);
+  }
+
+  /* ปุ่มหลักด้านล่าง */
+  .main-btn {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--safe-bot) + 14px);
+    transform: translateX(-50%);
+    font: 700 17px 'Mali', sans-serif;
+    background: linear-gradient(180deg, #ffe08c 0%, #ffb947 100%);
+    color: #381f0b;
+    border: 2px solid #fff4d4;
+    border-radius: 999px;
+    padding: 11px 30px;
+    cursor: pointer;
+    z-index: 20;
+    box-shadow: 0 6px 22px rgba(255, 185, 71, 0.45);
+    white-space: nowrap;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  .main-btn:active {
+    transform: translateX(-50%) scale(0.95);
+  }
+
+  /* การ์ดคำอวยพรตอนท้าย */
+  .card-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(6, 8, 28, 0.68);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 40;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .card-box {
+    position: relative;
+    background: linear-gradient(180deg, #fffdf8 0%, #fff2d9 100%);
+    color: var(--brown-dark);
+    border-radius: 24px;
+    padding: 26px 22px 22px;
+    max-width: 360px;
+    width: 100%;
+    max-height: 86vh;
+    overflow-y: auto;
+    text-align: center;
+    line-height: 1.75;
+    font-size: 16.5px;
+    border: 3px solid var(--gold);
+    box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+    animation: cardPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .card-deco {
+    font-size: 26px;
+    margin-bottom: 4px;
+  }
+
+  .card-box h2 {
+    margin: 0 0 10px;
+    font-size: 23px;
+    color: var(--brown-warm);
+    font-weight: 700;
+  }
+
+  .card-wish-badge {
+    display: inline-block;
+    margin: 10px 0 4px;
+    padding: 5px 12px;
+    background: rgba(247, 161, 196, 0.22);
+    border: 1px dashed #d97a9e;
+    border-radius: 12px;
+    font-size: 13.5px;
+    color: #7d3652;
+  }
+
+  .card-box small {
+    display: block;
+    margin-top: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #7a523c;
+  }
+
+  .card-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .card-sub-btn {
+    font: 600 13.5px 'Mali', sans-serif;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--brown-warm);
+    background: #fff;
+    color: var(--brown-warm);
+    cursor: pointer;
+  }
+
+  .card-sub-btn.primary {
+    background: var(--gold);
+    border-color: var(--gold-deep);
+    color: #381f0b;
+  }
+
+  /* ป้ายคำอวยพรพิเศษตอนกดดาวตกทัน */
+  .star-wish-toast {
+    position: fixed;
+    top: calc(var(--safe-top) + 134px);
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 92vw;
+    background: rgba(255, 248, 235, 0.94);
+    color: var(--brown-dark);
+    border: 1.5px solid var(--gold);
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(255, 208, 116, 0.35);
+    z-index: 30;
+    pointer-events: none;
+    white-space: normal;
+    text-align: center;
+    animation: toastFloat 3.4s ease forwards;
+  }
+
+  @keyframes toastFloat {
+    0% { opacity: 0; transform: translate(-50%, 8px) scale(0.92); }
+    14% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    82% { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -14px) scale(0.96); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes cardPop {
+    from { opacity: 0; transform: scale(0.86) translateY(16px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ซ่อน/แสดงของแต่งตัวใน SVG */
+  .acc-hidden { display: none; }
+
+  /* ร้านค้าเล็กๆ ริมฝั่งตรงข้าม */
+  .stall {
+    position: fixed;
+    bottom: calc(48% + 1px);
+    width: clamp(38px, 11.5vw, 50px);
+    height: clamp(38px, 11vw, 46px);
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    z-index: 3;
+    transition: transform 0.15s ease;
+  }
+  .stall:active { transform: scale(0.9); }
+  .stall-sign {
+    position: absolute;
+    left: 50%;
+    top: -6px;
+    transform: translateX(-50%);
+    font-size: 15px;
+    line-height: 1;
+    filter: drop-shadow(0 0 5px rgba(255, 200, 110, 0.7));
+    animation: signBob 2.6s ease-in-out infinite alternate;
+  }
+  @keyframes signBob {
+    from { transform: translateX(-50%) translateY(0); }
+    to { transform: translateX(-50%) translateY(-2px); }
+  }
+  .stall-awning {
+    position: absolute;
+    left: -2px; right: -2px;
+    top: 12px;
+    height: 11px;
+    border-radius: 3px 3px 7px 7px;
+    background: repeating-linear-gradient(90deg, var(--aw1) 0 7px, var(--aw2) 7px 14px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+  .stall-body {
+    position: absolute;
+    left: 3px; right: 3px;
+    top: 22px; bottom: 0;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(180deg, #ffd27a 0%, #c9742e 100%);
+    box-shadow: 0 0 14px 3px rgba(255, 190, 100, 0.5), 0 16px 18px -6px rgba(255, 190, 100, 0.3);
+    animation: stallGlow 3s ease-in-out infinite alternate;
+  }
+  @keyframes stallGlow {
+    from { filter: brightness(0.92); }
+    to { filter: brightness(1.12); }
+  }
+
+  /* แผงแต่งตัว */
+  body.dressing .dialogue-bubble,
+  body.dressing .sky-hint { opacity: 0; pointer-events: none; }
+
+  .dress-panel {
+    position: fixed;
+    top: calc(var(--safe-top) + 96px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 390px);
+    max-height: min(300px, calc(84vh - clamp(160px, 40vw, 192px) - 110px));
+    overflow-y: auto;
+    background: rgba(16, 19, 52, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1.5px solid rgba(255, 208, 116, 0.5);
+    border-radius: 20px;
+    padding: 10px 12px 12px;
+    z-index: 22;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  }
+  .dress-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    color: var(--gold);
+    font-size: 14px;
+  }
+  .dress-x {
+    font: 600 13px 'Mali', sans-serif;
+    background: rgba(255, 248, 235, 0.14);
+    color: var(--cream);
+    border: 0;
+    border-radius: 999px;
+    width: 26px; height: 26px;
+    cursor: pointer;
+  }
+  .dress-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+  .dress-tab {
+    flex: 1;
+    font: 600 13px 'Mali', sans-serif;
+    padding: 5px 0;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 208, 116, 0.4);
+    background: transparent;
+    color: var(--cream);
+    cursor: pointer;
+  }
+  .dress-tab.on { background: rgba(255, 208, 116, 0.25); border-color: var(--gold); color: var(--gold); }
+  .dress-label { font-size: 11.5px; color: rgba(255, 248, 235, 0.7); margin: 6px 0 4px; }
+  .dress-panel .color-chip { font-size: 12px; padding: 4px 9px; }
+  .dress-panel .color-row { justify-content: flex-start; }
+
+  /* ===== หน้าเมนูชวนลอยกระทง + หน้าแต่งตัวก่อนเข้าฉาก ===== */
+  .menu-screen {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 24px; text-align: center;
+    background: radial-gradient(ellipse at 50% 38%, rgba(39, 34, 89, 0.78), rgba(5, 8, 26, 0.94) 72%);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    animation: fadeIn 0.6s ease;
+  }
+  .menu-deco { font-size: 34px; letter-spacing: 8px; animation: menuFloat 3.4s ease-in-out infinite; }
+  @keyframes menuFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .menu-screen h1 { margin: 0; font-size: clamp(30px, 8.5vw, 42px); color: var(--gold); text-shadow: 0 4px 22px rgba(255, 199, 102, 0.4); }
+  .menu-screen p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--cream); opacity: 0.92; max-width: 320px; }
+  .menu-screen .main-btn { position: static; transform: none; margin-top: 10px; font-size: 18px; padding: 13px 34px; }
+  .menu-screen .main-btn:active { transform: scale(0.95); }
+  .dress-title { display: none; position: fixed; top: calc(var(--safe-top) + 14px); left: 0; right: 0; text-align: center; z-index: 21; padding: 0 16px; pointer-events: none; }
+  .dress-title b { display: block; font-size: 22px; color: var(--gold); text-shadow: 0 3px 16px rgba(255, 199, 102, 0.35); }
+  .dress-title span { font-size: 14px; color: var(--cream); opacity: 0.88; }
+  .dress-go { display: none; }
+  body.phase-menu .top-bar, body.phase-dress .top-bar,
+  body.phase-menu .hero-title, body.phase-dress .hero-title,
+  body.phase-menu #mainBtn, body.phase-dress #mainBtn,
+  body.phase-menu .sky-hint, body.phase-dress .sky-hint,
+  body.phase-menu .stall, body.phase-dress .stall { display: none !important; }
+  body.phase-menu .chars-stage { opacity: 0; }
+  body.phase-dress .dress-title, body.phase-dress .dress-go { display: block; }
+  body.phase-dress .dress-panel { top: calc(var(--safe-top) + 74px); }
+  body.phase-dress #dressClose { display: none; }
+
+  .hide {
+    display: none !important;
+  }
+</style>
+</head>
+<body class="phase-menu">
+
+<!-- แคนวาสฉากท้องฟ้า แม่น้ำ โคมลอย กระทง และพลุ -->
+<canvas id="scene"></canvas>
+
+<!-- แถบกิจกรรมเพิ่มเติมด้านบน -->
+<div class="top-bar">
+  <div class="top-group">
+    <button class="pill-btn" id="btnSound" aria-label="เปิดหรือปิดเสียง">🔊 เพลง: เปิด</button>
+    <button class="pill-btn" id="btnSparkler" title="ถือไฟเย็นเล่นริมน้ำ">✨ ไฟเย็น</button>
+    <button class="pill-btn" id="btnDress" title="เลือกชุดและตกแต่งตัวละคร">👗 แต่งตัว</button>
+  </div>
+  <div class="top-group">
+    <button class="pill-btn" id="btnLantern">🏮 ปล่อยโคม</button>
+    <button class="pill-btn hide" id="btnReopenCard">💌 อ่านการ์ด</button>
+  </div>
+</div>
+
+<div class="sky-hint" id="skyHint">✨ แตะบนท้องฟ้าเพื่อจุดพลุ หรือแตะตัวละครได้นะ</div>
+
+<!-- ร้านค้าเล็กๆ ริมฝั่งตรงข้าม (แตะได้) -->
+<button class="stall" id="stallSkewer" style="left:2%; --aw1:#d9473f; --aw2:#fff1dc;" data-icon="🍢" data-msg="🍢 ซื้อหมูปิ้งมากินกัน อร่อยจังเลย" aria-label="ร้านหมูปิ้ง">
+  <span class="stall-sign">🍢</span><span class="stall-awning"></span><span class="stall-body"></span>
+</button>
+<button class="stall" id="stallTea" style="left:34%; --aw1:#3f9b74; --aw2:#fff1dc;" data-icon="🧋" data-msg="🧋 ชาเย็นๆ สักแก้ว" aria-label="ร้านชาไข่มุก">
+  <span class="stall-sign">🧋</span><span class="stall-awning"></span><span class="stall-body"></span>
+</button>
+<button class="stall" id="stallKrathong" style="left:49%; --aw1:#e9729f; --aw2:#fff1dc;" data-kind="krathong" aria-label="ร้านกระทง">
+  <span class="stall-sign">🪷</span><span class="stall-awning"></span><span class="stall-body"></span>
+</button>
+<button class="stall" id="stallSweet" style="right:2%; --aw1:#e8a23a; --aw2:#fff1dc;" data-icon="🍡" data-msg="🍡 ขนมหวานๆ อร่อยจังเลย" aria-label="ร้านขนมไทย">
+  <span class="stall-sign">🍡</span><span class="stall-awning"></span><span class="stall-body"></span>
+</button>
+
+<!-- สะพานไม้ท่าน้ำและเสาโคมไฟ -->
+<div class="pier-wrap">
+  <div class="pier-string-lights"></div>
+  <div class="pier-post left"><div class="pier-lantern"></div></div>
+  <div class="pier-post right"><div class="pier-lantern"></div></div>
+  <div class="pier-deck"></div>
+</div>
+
+<!-- คาแรคเตอร์ ??? & วาร์ (SVG ความละเอียดสูง สไตล์ Chibi ละมุน) -->
+<div class="chars-stage" id="charsStage">
+  <!-- ??? -->
+  <div class="char-box oat" id="charOat" role="button" tabindex="0" aria-label="??? แตะเพื่อทักทาย">
+    <svg viewBox="0 0 140 200" width="100%" height="100%" overflow="visible">
+      <defs>
+        <radialGradient id="cheekGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ff8fa3" stop-opacity="0.72"/>
+          <stop offset="100%" stop-color="#ff8fa3" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="oatHair" x1="0" y1="0" x2="0" y2="1">
+          <stop id="oatHairA" offset="0%" stop-color="#3c2a21"/>
+          <stop id="oatHairB" offset="100%" stop-color="#221611"/>
+        </linearGradient>
+        <linearGradient id="oatShirt" x1="0" y1="0" x2="0" y2="1">
+          <stop id="oatShirtA" offset="0%" stop-color="#fffaf0"/>
+          <stop id="oatShirtB" offset="100%" stop-color="#eadbc8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- เงาใต้เท้า -->
+      <ellipse cx="70" cy="186" rx="34" ry="7" fill="rgba(22, 12, 8, 0.45)"/>
+
+      <!-- ขาและรองเท้า -->
+      <rect x="46" y="152" width="17" height="28" rx="8" fill="#46332b"/>
+      <rect x="77" y="152" width="17" height="28" rx="8" fill="#46332b"/>
+      <rect x="43" y="173" width="22" height="12" rx="6" fill="#2b1e19"/>
+      <rect x="75" y="173" width="22" height="12" rx="6" fill="#2b1e19"/>
+
+      <!-- ลำตัวและชุดไทยประยุกต์สีครีมอบอุ่น -->
+      <path d="M36 158 V112 Q36 94 54 94 H86 Q104 94 104 112 V158 Z" id="oatBody" fill="url(#oatShirt)" stroke="#d4c0a8" stroke-width="1.5"/>
+      <!-- ปกเสื้อจีน/ราชปะแตนประยุกต์ + กระดุม -->
+      <path id="oatCollar" d="M56 94 L70 107 L84 94" fill="none" stroke="#c8ad8d" stroke-width="2.5" stroke-linecap="round"/>
+      <circle class="oat-btn" cx="70" cy="115" r="2.2" fill="#b5946b"/>
+      <circle class="oat-btn" cx="70" cy="127" r="2.2" fill="#b5946b"/>
+      <circle class="oat-btn" cx="70" cy="139" r="2.2" fill="#b5946b"/>
+      <!-- ผ้าคาดเอวสีน้ำตาลทอง -->
+      <rect id="oatSash" x="36" y="143" width="68" height="11" rx="4" fill="#9c6644"/>
+
+      <!-- แขนซ้าย-ขวา -->
+      <path id="oatArmL" d="M36 108 Q24 126 32 142" stroke="#eadbc8" stroke-width="13" stroke-linecap="round" fill="none"/>
+      <circle cx="32" cy="143" r="6.5" fill="#f7d7bc"/>
+      <path id="oatArmR" d="M104 108 Q116 126 108 142" stroke="#eadbc8" stroke-width="13" stroke-linecap="round" fill="none"/>
+      <circle cx="108" cy="143" r="6.5" fill="#f7d7bc"/>
+
+      <!-- คอ -->
+      <rect x="61" y="83" width="18" height="15" rx="7" fill="#eec7a8"/>
+
+      <!-- ผมด้านหลัง -->
+      <path d="M32 62 Q30 22 70 20 Q110 22 108 62 Q108 82 98 86 L42 86 Q32 82 32 62 Z" fill="url(#oatHair)"/>
+
+      <!-- ใบหน้า -->
+      <path d="M37 56 Q37 28 70 28 Q103 28 103 56 Q103 88 70 90 Q37 88 37 56 Z" fill="#f8d9be"/>
+      <!-- หู -->
+      <circle cx="36" cy="63" r="6.5" fill="#f3cca9"/>
+      <circle cx="104" cy="63" r="6.5" fill="#f3cca9"/>
+
+      <!-- คิ้วละมุน -->
+      <path d="M48 50 Q54 47 60 50" stroke="#3c2a21" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <path d="M80 50 Q86 47 92 50" stroke="#3c2a21" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+      <!-- ดวงตาเป็นประกาย -->
+      <g class="eye-blink">
+        <ellipse cx="54" cy="61" rx="5.2" ry="6.2" fill="#231712"/>
+        <circle cx="52.2" cy="58.5" r="2.1" fill="#ffffff"/>
+        <circle cx="55.8" cy="63" r="1.1" fill="#ffffff" opacity="0.8"/>
+
+        <ellipse cx="86" cy="61" rx="5.2" ry="6.2" fill="#231712"/>
+        <circle cx="84.2" cy="58.5" r="2.1" fill="#ffffff"/>
+        <circle cx="87.8" cy="63" r="1.1" fill="#ffffff" opacity="0.8"/>
+      </g>
+
+      <!-- แก้มอมชมพู -->
+      <ellipse cx="45" cy="70" rx="8.5" ry="5.5" fill="url(#cheekGrad)"/>
+      <ellipse cx="95" cy="70" rx="8.5" ry="5.5" fill="url(#cheekGrad)"/>
+
+      <!-- ปากยิ้มอบอุ่น -->
+      <path d="M64 73 Q70 79 76 73" stroke="#8c4a3c" stroke-width="2.3" stroke-linecap="round" fill="none"/>
+
+      <!-- ผมหน้าม้าปัดน่ารัก + ไฮไลต์ผม -->
+      <path d="M33 56 Q34 18 70 18 Q106 18 107 56 Q101 42 92 48 Q85 35 74 49 Q64 36 53 49 Q43 41 33 56 Z" fill="url(#oatHair)"/>
+      <path d="M50 28 Q70 23 90 28" stroke="#63483a" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.55"/>
+
+      <!-- ของแต่งตัว??? -->
+      <g id="oatGarland" class="acc-hidden"><circle cx="48.0" cy="97.0" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="48.0" cy="97.0" r="1.3" fill="#fff0b0"/><circle cx="52.4" cy="108.7" r="4.3" fill="#ff8a1f" stroke="#d9740f" stroke-width="0.6"/><circle cx="52.4" cy="108.7" r="1.3" fill="#fff0b0"/><circle cx="56.8" cy="117.8" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="56.8" cy="117.8" r="1.3" fill="#fff0b0"/><circle cx="61.2" cy="124.3" r="4.3" fill="#ff8a1f" stroke="#d9740f" stroke-width="0.6"/><circle cx="61.2" cy="124.3" r="1.3" fill="#fff0b0"/><circle cx="65.6" cy="128.2" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="65.6" cy="128.2" r="1.3" fill="#fff0b0"/><circle cx="70.0" cy="129.5" r="4.3" fill="#ff8a1f" stroke="#d9740f" stroke-width="0.6"/><circle cx="70.0" cy="129.5" r="1.3" fill="#fff0b0"/><circle cx="74.4" cy="128.2" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="74.4" cy="128.2" r="1.3" fill="#fff0b0"/><circle cx="78.8" cy="124.3" r="4.3" fill="#ff8a1f" stroke="#d9740f" stroke-width="0.6"/><circle cx="78.8" cy="124.3" r="1.3" fill="#fff0b0"/><circle cx="83.2" cy="117.8" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="83.2" cy="117.8" r="1.3" fill="#fff0b0"/><circle cx="87.6" cy="108.7" r="4.3" fill="#ff8a1f" stroke="#d9740f" stroke-width="0.6"/><circle cx="87.6" cy="108.7" r="1.3" fill="#fff0b0"/><circle cx="92.0" cy="97.0" r="4.3" fill="#ffb21e" stroke="#d9740f" stroke-width="0.6"/><circle cx="92.0" cy="97.0" r="1.3" fill="#fff0b0"/><line x1="70" y1="128" x2="70" y2="138" stroke="#e08a1c" stroke-width="1.6"/><circle cx="70" cy="140" r="3.2" fill="#ff7a8a"/></g>
+      <g id="oatGlasses" class="acc-hidden" fill="rgba(255,255,255,0.14)" stroke="#4a3a30" stroke-width="1.9" stroke-linecap="round">
+        <circle cx="54" cy="61" r="9.5"/><circle cx="86" cy="61" r="9.5"/>
+        <path d="M63.5 60 Q70 56 76.5 60" fill="none"/>
+        <path d="M44.5 60 L38 61 M95.5 60 L102 61" fill="none"/>
+      </g>
+      <g id="oatEarFlower" class="acc-hidden" transform="translate(102,50)">
+        <path d="M0 2 Q10 8 12 16 Q2 14 0 2 Z" fill="#4fae7a"/>
+        <circle cx="0" cy="-5" r="3.6" fill="#fff"/><circle cx="4.8" cy="-1.5" r="3.6" fill="#fff"/><circle cx="3" cy="4" r="3.6" fill="#fff"/><circle cx="-3" cy="4" r="3.6" fill="#fff"/><circle cx="-4.8" cy="-1.5" r="3.6" fill="#fff"/>
+        <circle cx="0" cy="0" r="2.6" fill="#ffd074"/>
+      </g>
+      <g id="oatBand" class="acc-hidden">
+        <path d="M35 47 Q70 29 105 47" stroke="#ffd074" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+        <path d="M35 47 Q70 29 105 47" stroke="#c68628" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="3 3" fill="none"/>
+        <circle cx="70" cy="37.5" r="3" fill="#ff9ec4" stroke="#fff" stroke-width="0.8"/>
+      </g>
+    </svg>
+    <div class="name-tag">???</div>
+  </div>
+
+  <!-- วาร์ -->
+  <div class="char-box var" id="charVar" role="button" tabindex="0" aria-label="วาร์ แตะเพื่อทักทาย">
+    <svg viewBox="0 0 140 200" width="100%" height="100%" overflow="visible">
+      <defs>
+        <linearGradient id="varHair" x1="0" y1="0" x2="0" y2="1">
+          <stop id="varHairA" offset="0%" stop-color="#35241e"/>
+          <stop id="varHairB" offset="100%" stop-color="#1e1310"/>
+        </linearGradient>
+        <linearGradient id="sabaiGold" x1="0" y1="0" x2="1" y2="1">
+          <stop id="sabA" offset="0%" stop-color="#ffe29a"/>
+          <stop id="sabB" offset="55%" stop-color="#e5ae49"/>
+          <stop id="sabC" offset="100%" stop-color="#c68628"/>
+        </linearGradient>
+        <linearGradient id="varSkirt" x1="0" y1="0" x2="0" y2="1">
+          <stop id="varSkA" offset="0%" stop-color="#485678"/>
+          <stop id="varSkB" offset="100%" stop-color="#2b354d"/>
+        </linearGradient>
+      </defs>
+
+      <!-- เงาใต้เท้า -->
+      <ellipse cx="70" cy="186" rx="34" ry="7" fill="rgba(22, 12, 8, 0.45)"/>
+
+      <!-- ผมยาวสลวยด้านหลัง -->
+      <path d="M27 56 Q22 108 32 136 Q48 144 70 144 Q92 144 108 136 Q118 108 113 56 Z" fill="url(#varHair)"/>
+
+      <!-- ขาและรองเท้า -->
+      <rect x="48" y="154" width="15" height="26" rx="7" fill="#f5d2b5"/>
+      <rect x="77" y="154" width="15" height="26" rx="7" fill="#f5d2b5"/>
+      <rect x="45" y="174" width="21" height="11" rx="5.5" fill="#d9a441"/>
+      <rect x="74" y="174" width="21" height="11" rx="5.5" fill="#d9a441"/>
+
+      <!-- ผ้าถุง/กระโปรงไทยสีครามละมุน -->
+      <path d="M40 128 H100 L104 162 Q70 167 36 162 Z" fill="url(#varSkirt)"/>
+      <path id="varHem" d="M40 155 Q70 160 100 155" stroke="#ffd074" stroke-width="2" fill="none" opacity="0.75"/>
+
+      <!-- เสื้อลูกไม้สีครีม -->
+      <path id="varBlouse" d="M40 130 V108 Q40 94 56 94 H84 Q100 94 100 108 V130 Z" fill="#fffaf2"/>
+
+      <!-- สไบเฉียงสีทองละมุน -->
+      <path d="M44 95 L98 134 L88 142 L38 105 Z" fill="url(#sabaiGold)"/>
+      <path id="varDash" d="M43 98 L94 136" stroke="#fff6d6" stroke-width="1.4" stroke-dasharray="3 3" opacity="0.85"/>
+
+      <!-- แขนซ้าย-ขวา -->
+      <path d="M40 107 Q28 125 36 140" stroke="#f8d9be" stroke-width="11" stroke-linecap="round" fill="none"/>
+      <path d="M100 107 Q112 125 104 140" stroke="#f8d9be" stroke-width="11" stroke-linecap="round" fill="none"/>
+
+      <!-- คอ -->
+      <rect x="62" y="83" width="16" height="14" rx="7" fill="#eec7a8"/>
+
+      <!-- ใบหน้า -->
+      <path d="M38 56 Q38 28 70 28 Q102 28 102 56 Q102 88 70 90 Q38 88 38 56 Z" fill="#fae0c8"/>
+
+      <!-- คิ้วน่ารัก -->
+      <path d="M48 51 Q54 48 60 51" stroke="#35241e" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M80 51 Q86 48 92 51" stroke="#35241e" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+      <!-- ดวงตากลมโตเป็นประกาย + ขนตาเล็กๆ -->
+      <g class="eye-blink">
+        <ellipse cx="54" cy="61" rx="5.5" ry="6.5" fill="#231712"/>
+        <path d="M47 58 L49.5 59.5" stroke="#231712" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="52" cy="58.5" r="2.2" fill="#ffffff"/>
+        <circle cx="56" cy="63" r="1.1" fill="#ffffff" opacity="0.85"/>
+
+        <ellipse cx="86" cy="61" rx="5.5" ry="6.5" fill="#231712"/>
+        <path d="M93 58 L90.5 59.5" stroke="#231712" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="84" cy="58.5" r="2.2" fill="#ffffff"/>
+        <circle cx="88" cy="63" r="1.1" fill="#ffffff" opacity="0.85"/>
+      </g>
+
+      <!-- แก้มอมชมพู -->
+      <ellipse cx="45" cy="70" rx="9" ry="5.5" fill="url(#cheekGrad)"/>
+      <ellipse cx="95" cy="70" rx="9" ry="5.5" fill="url(#cheekGrad)"/>
+
+      <!-- ปากยิ้มน่ารัก -->
+      <path d="M65 73 Q70 78.5 75 73" stroke="#a64d59" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+      <!-- ปอยผมด้านหน้า + ไฮไลต์ -->
+      <path d="M33 62 Q32 18 70 18 Q108 18 107 62 Q103 42 90 48 Q81 36 70 48 Q59 36 50 48 Q37 42 33 62 Z" fill="url(#varHair)"/>
+      <path d="M34 54 Q30 74 37 92" stroke="url(#varHair)" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <path d="M106 54 Q110 74 103 92" stroke="url(#varHair)" stroke-width="7" stroke-linecap="round" fill="none"/>
+      <path d="M52 27 Q70 22 88 27" stroke="#6b4e42" stroke-width="2.4" stroke-linecap="round" fill="none" opacity="0.55"/>
+
+      <!-- ดอกไม้ประดับผมสีชมพูทอง -->
+      <g id="varFlower" transform="translate(96, 33)">
+        <circle cx="0" cy="-4" r="4" fill="#ffb3d1"/>
+        <circle cx="4" cy="0" r="4" fill="#ff9ec4"/>
+        <circle cx="0" cy="4" r="4" fill="#ffb3d1"/>
+        <circle cx="-4" cy="0" r="4" fill="#ff9ec4"/>
+        <circle cx="0" cy="0" r="2.5" fill="#ffd074"/>
+      </g>
+
+      <!-- ของแต่งตัววาร์ -->
+      <g id="varCrown" class="acc-hidden">
+        <path d="M50 28 L53 11 L61 20 L70 6 L79 20 L87 11 L90 28 Q70 33 50 28 Z" fill="#ffd074" stroke="#c68628" stroke-width="1.4" stroke-linejoin="round"/>
+        <circle cx="53" cy="11" r="2.2" fill="#ff9ec4"/><circle cx="70" cy="6" r="2.4" fill="#7ec8ff"/><circle cx="87" cy="11" r="2.2" fill="#ff9ec4"/>
+        <circle cx="70" cy="25" r="2" fill="#fff"/>
+      </g>
+      <g id="varEar" class="acc-hidden">
+        <circle cx="39.5" cy="69" r="2.3" fill="#ffd074" stroke="#c68628" stroke-width="0.6"/>
+        <ellipse cx="39.5" cy="75" rx="2" ry="3.6" fill="#ffd074" stroke="#c68628" stroke-width="0.6"/>
+        <circle cx="100.5" cy="69" r="2.3" fill="#ffd074" stroke="#c68628" stroke-width="0.6"/>
+        <ellipse cx="100.5" cy="75" rx="2" ry="3.6" fill="#ffd074" stroke="#c68628" stroke-width="0.6"/>
+      </g>
+      <g id="varJasmine" class="acc-hidden"><circle cx="46.0" cy="98.0" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="46.0" cy="98.0" r="1.1" fill="#ffd074"/><circle cx="50.8" cy="107.7" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="50.8" cy="107.7" r="1.1" fill="#ffd074"/><circle cx="55.6" cy="115.3" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="55.6" cy="115.3" r="1.1" fill="#ffd074"/><circle cx="60.4" cy="120.7" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="60.4" cy="120.7" r="1.1" fill="#ffd074"/><circle cx="65.2" cy="123.9" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="65.2" cy="123.9" r="1.1" fill="#ffd074"/><circle cx="70.0" cy="125.0" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="70.0" cy="125.0" r="1.1" fill="#ffd074"/><circle cx="74.8" cy="123.9" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="74.8" cy="123.9" r="1.1" fill="#ffd074"/><circle cx="79.6" cy="120.7" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="79.6" cy="120.7" r="1.1" fill="#ffd074"/><circle cx="84.4" cy="115.3" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="84.4" cy="115.3" r="1.1" fill="#ffd074"/><circle cx="89.2" cy="107.7" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="89.2" cy="107.7" r="1.1" fill="#ffd074"/><circle cx="94.0" cy="98.0" r="3.6" fill="#fffdf6" stroke="#e5d8bf" stroke-width="0.7"/><circle cx="94.0" cy="98.0" r="1.1" fill="#ffd074"/><line x1="70" y1="125" x2="70" y2="136" stroke="#d9c9a6" stroke-width="1.5"/><circle cx="70" cy="138" r="3.3" fill="#ff9ec4"/><circle cx="66" cy="132" r="2" fill="#fffdf6"/><circle cx="74" cy="132" r="2" fill="#fffdf6"/></g>
+      <g id="varBow" class="acc-hidden" transform="translate(44,34)">
+        <path d="M0 0 L-12 -8 L-12 8 Z" fill="#ff9ec4" stroke="#e0709f" stroke-width="0.8" stroke-linejoin="round"/>
+        <path d="M0 0 L12 -8 L12 8 Z" fill="#ff9ec4" stroke="#e0709f" stroke-width="0.8" stroke-linejoin="round"/>
+        <circle cx="0" cy="0" r="3.2" fill="#ff7fb0" stroke="#e0709f" stroke-width="0.8"/>
+      </g>
+      <!-- กิมมิคของแต่งตัววาร์เพิ่มเติม: หูกระต่าย / แว่นน่ารัก / โคมมือถือ / คฑาดาววิ้ง -->
+      <g id="varBunny" class="acc-hidden">
+        <path d="M47 26 Q38 2 48 0 Q56 1 56 24 Z" fill="#fffaf5" stroke="#e0b8c8" stroke-width="1.3"/>
+        <path d="M49 23 Q44 6 49 4 Q53 5 53 22 Z" fill="#ffb6d2"/>
+        <path d="M93 26 Q102 2 92 0 Q84 1 84 24 Z" fill="#fffaf5" stroke="#e0b8c8" stroke-width="1.3"/>
+        <path d="M91 23 Q96 6 91 4 Q87 5 87 22 Z" fill="#ffb6d2"/>
+      </g>
+      <g id="varGlasses" class="acc-hidden" fill="rgba(255,235,245,0.16)" stroke="#c76c9a" stroke-width="1.8" stroke-linecap="round">
+        <circle cx="54" cy="61" r="9.2"/><circle cx="86" cy="61" r="9.2"/>
+        <path d="M63.2 60 Q70 56.5 76.8 60" fill="none"/>
+        <path d="M44.8 60 L38.5 61 M95.2 60 L101.5 61" fill="none"/>
+      </g>
+      <g id="varHandLantern" class="acc-hidden">
+        <line x1="104" y1="138" x2="115" y2="122" stroke="#8c5c40" stroke-width="2" stroke-linecap="round"/>
+        <line x1="115" y1="122" x2="115" y2="129" stroke="#ffd074" stroke-width="1.3"/>
+        <rect x="108" y="129" width="14" height="17" rx="5" fill="#ffd27a" stroke="#d98a2b" stroke-width="1"/>
+        <circle cx="115" cy="137.5" r="4" fill="#fffbe6"/>
+        <rect x="109" y="127" width="12" height="2.5" rx="1" fill="#6b3e26"/>
+        <rect x="109" y="145.5" width="12" height="2.5" rx="1" fill="#6b3e26"/>
+      </g>
+      <g id="varStarWand" class="acc-hidden">
+        <line x1="36" y1="140" x2="21" y2="116" stroke="#ffd074" stroke-width="2.4" stroke-linecap="round"/>
+        <polygon points="21,106 23.6,112.5 30.5,113 25.2,117.5 26.8,124.2 21,120.5 15.2,124.2 16.8,117.5 11.5,113 18.4,112.5" fill="#ffe680" stroke="#e09f3e" stroke-width="0.9"/>
+        <circle cx="14" cy="105" r="1.4" fill="#fff7cc"/>
+        <circle cx="29" cy="107" r="1.2" fill="#ffb3d1"/>
+      </g>
+    </svg>
+    <div class="name-tag">วาร์</div>
+  </div>
+</div>
+
+<!-- หน้าปกเริ่มต้น -->
+<div class="hero-title" id="heroTitle">
+  <div class="hero-badge">🌕 คืนวันเพ็ญเดือนสิบสอง</div>
+  <h1>ลอยกระทงด้วยกัน</h1>
+  <p>??? &amp; วาร์</p>
+</div>
+
+<!-- กล่องบทสนทนา -->
+<div class="dialogue-bubble hide" id="bubble">
+  <b id="speakerName"></b>
+  <div id="speakerText"></div>
+</div>
+
+<!-- แผงเลือกสีกระทง & พิมพ์คำอธิษฐาน -->
+<div class="prep-panel hide" id="prepPanel">
+  <div class="color-row" id="colorPick">
+    <button class="color-chip" data-c="#ff9ec4" data-c2="#ffd6e7" aria-pressed="true"><span class="dot" style="background:#ff9ec4"></span>ชมพูบัว</button>
+    <button class="color-chip" data-c="#7ec8ff" data-c2="#d6efff" aria-pressed="false"><span class="dot" style="background:#7ec8ff"></span>ฟ้าคราม</button>
+    <button class="color-chip" data-c="#c39eff" data-c2="#eadbff" aria-pressed="false"><span class="dot" style="background:#c39eff"></span>ม่วงลาเวนเดอร์</button>
+    <button class="color-chip" data-c="#ffcb6b" data-c2="#fff0c9" aria-pressed="false"><span class="dot" style="background:#ffcb6b"></span>ทองอร่าม</button>
+  </div>
+  <div class="wish-row">
+    <input type="text" class="wish-input" id="wishInput" maxlength="36" placeholder="พิมพ์คำอธิษฐาน หรือเรื่องที่อยากปล่อยลอยไป...">
+  </div>
+  <div class="wish-tags" id="wishTags">
+    <button type="button" class="tag-chip" data-w="ทิ้งความเหนื่อยล้าทั้งหมด ✨">ทิ้งความเหนื่อยล้า ✨</button>
+    <button type="button" class="tag-chip" data-w="ขอให้มีแต่รอยยิ้มและความสุข 💛">ขอให้มีความสุข 💛</button>
+    <button type="button" class="tag-chip" data-w="ขอให้สมหวังทุกเป้าหมาย 🌟">สมหวังทุกเป้าหมาย 🌟</button>
+    <button type="button" class="tag-chip" data-w="เจอแต่คนใจดีกับวาร์นะ 🌸">เจอแต่คนใจดี 🌸</button>
+  </div>
+</div>
+
+<!-- แผงแต่งตัวและตกแต่งตัวละคร -->
+<div class="dress-panel hide" id="dressPanel">
+  <div class="dress-head">
+    <b>👗 แต่งตัว</b>
+    <button class="dress-x" id="dressClose" aria-label="ปิดแผงแต่งตัว">✕</button>
+  </div>
+  <div class="dress-tabs">
+    <button class="dress-tab" data-who="oat">???</button>
+    <button class="dress-tab on" data-who="var">วาร์</button>
+  </div>
+  <div class="dress-label">ชุด</div>
+  <div class="color-row" id="dressOutfits"></div>
+  <div class="dress-label" id="dressHairLabel">ทรงผม / สีผม</div>
+  <div class="color-row" id="dressHair"></div>
+  <div class="dress-label">ของตกแต่ง (แตะเพื่อใส่ / ถอด)</div>
+  <div class="color-row" id="dressAcc"></div>
+  <div style="margin-top:8px; display:flex; justify-content:flex-end;">
+    <button type="button" class="tag-chip" id="btnRandomLook">🎲 สุ่มลุคน่ารัก</button>
+  </div>
+</div>
+
+<!-- หน้าเมนู: ชวนไปลอยกระทง -->
+<div class="menu-screen" id="menuScreen">
+  <div class="menu-deco">🪷 🌕 🏮</div>
+  <h1>ไปลอยกระทงกันไหม</h1>
+  <p>คืนนี้พระจันทร์เต็มดวง ???ชวนวาร์ไปลอยกระทงด้วยกันนะ ไปปล่อยเรื่องไม่ดีให้ลอยไปกับน้ำ</p>
+  <button class="main-btn" id="menuGo">ไปลอยกระทงกัน 🪷</button>
+</div>
+
+<!-- หน้าแต่งตัวก่อนเข้าฉาก -->
+<div class="dress-title" id="dressTitle"><b>👗 แต่งตัวก่อนไปกัน</b><span>เลือกชุดให้???กับวาร์ได้เลย</span></div>
+<button class="main-btn dress-go" id="dressGo">พร้อมแล้ว ไปเลย ✨</button>
+
+<!-- ปุ่มหลักดำเนินเรื่อง -->
+<button class="main-btn" id="mainBtn">เริ่มเลย ✨</button>
+
+<!-- การ์ดคำอวยพรตอนจบ -->
+<div class="card-overlay" id="cardOverlay">
+  <div class="card-box">
+    <div class="card-deco">🪷✨🏮</div>
+    <h2>ถึง วาร์</h2>
+    <div>
+      ขอให้เรื่องร้ายๆ และความไม่สบายใจทั้งหมดลอยไปกับกระทงใบนี้<br>
+      ขอให้วาร์มีความสุขในทุกๆ วัน ยิ้มได้กว้างๆ ในทุกเรื่อง กินอะไรก็อร่อยถูกปาก เรื่องเครียดเรื่องหนักใจก็ขอให้ผ่านพ้นไปได้ง่ายๆ อะไรที่ตั้งใจไว้ก็ขอให้สมหวังและเป็นไปได้ด้วยดี รายล้อมไปด้วยคนดีๆ นะ<br>
+      ขอบคุณและดีใจนะ ที่มีแกอยู่ในช่วงเวลานี้และที่ผ่านมานะ
+    </div>
+    <div class="card-wish-badge hide" id="cardWishShow"></div>
+    <small>จาก ???</small>
+    <div class="card-actions">
+      <button class="card-sub-btn primary" id="btnCloseCard">ซ่อนการ์ดเพื่อดูวิวต่อ 🎆</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // บทสนทนาอบอุ่นของ ??? & วาร์
+  const LINES = [
+    { who: "???", cls: "speaker-oat", text: "ปีนี้แกอาจจะไม่ว่างหรือขี้เกียจไปลอยกระทง งั้นก็ลอยจากในนี้ละกันนะ" },
+    { who: "วาร์", cls: "speaker-var", text: "ได้เลย เอาเรื่องไม่ดีๆ ใส่กระทงลอยไปให้หมดเลย" },
+    { who: "???", cls: "speaker-oat", text: "ตั้งจิตอธิษฐาน แล้วปล่อยทั้งกระทงและโคมพร้อมกันเลย" }
+  ];
+
+  // ข้อความน่ารักเวลาแตะที่ตัวละคร
+  const OAT_EMOTES = ["อยู่ข้างๆ เสมอนะ 💛", "อธิษฐานเผื่อด้วย! 🪷", "คืนนี้พระจันทร์สวยเนอะ 🌕"];
+  const VAR_EMOTES = ["เย้ ลอยกระทงกัน! ✨", "สาธุ ขอให้ปังๆ 🙏", "โคมลอยสวยจัง 🏮", "ขอบคุณนะ 🌷"];
+
+  // คำอวยพรพิเศษเวลาแตะดาวตกทัน
+  const SHOOTING_STAR_WISHES = [
+    "🌠 แตะดาวตกทัน! ขอให้ทุกคำอธิษฐานของวาร์เป็นจริงนะ",
+    "🌠 ดาวตกเป็นพยาน ขอให้ปีนี้ใจดีกับแกเยอะๆ เลย",
+    "🌠 พรจากดาวตก: ขอให้มีแต่รอยยิ้มและความสบายใจทุกวัน",
+    "🌠 โชคดีจัง! ขอให้สิ่งที่ตั้งใจไว้สำเร็จราบรื่นนะวาร์"
+  ];
+
+  // =========================================================================
+  // ระบบดนตรีบรรเลงซึ้งๆ แบบไหลลื่นต่อเนื่อง (Look-ahead Scheduler + Warm Pad + Felt Piano & Khim)
+  // =========================================================================
+  let audioCtx = null;
+  let masterGain = null;
+  let reverbBus = null;
+  let soundOn = false;
+  let schedulerId = null;
+  let nextNoteTime = 0;
+  let sixteenthStep = 0;
+
+  // สร้าง Impulse Response จำลองห้องโถงริมน้ำยามค่ำคืนที่นุ่มนวลและกังวาน
+  function createWarmReverb(ctx) {
+    const duration = 2.6;
+    const rate = ctx.sampleRate;
+    const length = Math.floor(rate * duration);
+    const impulse = ctx.createBuffer(2, length, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = impulse.getChannelData(ch);
+      for (let i = 0; i < length; i++) {
+        const env = Math.pow(1 - i / length, 2.4);
+        data[i] = (Math.random() * 2 - 1) * env * 0.45;
+      }
+    }
+    const convolver = ctx.createConvolver();
+    convolver.buffer = impulse;
+    return convolver;
+  }
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.85;
+
+      // Compressor อ่อนๆ ป้องกันเสียงพีคเวลาโน้ตซ้อนกันหลายชั้น ทำให้เพลงเนียนหู
+      const compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.value = -20;
+      compressor.knee.value = 18;
+      compressor.ratio.value = 3;
+      compressor.attack.value = 0.02;
+      compressor.release.value = 0.25;
+
+      reverbBus = createWarmReverb(audioCtx);
+      const wetGain = audioCtx.createGain();
+      wetGain.gain.value = 0.48;
+
+      reverbBus.connect(wetGain);
+      wetGain.connect(compressor);
+      masterGain.connect(compressor);
+      compressor.connect(audioCtx.destination);
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  // เสียง Felt Piano / ขิมนุ่มๆ ที่กำหนดเวลาแม่นยำระดับ Sample
+  function schedulePianoNote(freq, time, duration = 2.4, vol = 0.052, shimmer = true) {
+    if (!soundOn || !audioCtx || !masterGain) return;
+
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const env = audioCtx.createGain();
+
+    osc1.type = 'triangle';
+    osc2.type = 'sine';
+    osc1.frequency.setValueAtTime(freq, time);
+    osc2.frequency.setValueAtTime(shimmer ? freq * 2 : freq * 0.5, time);
+    osc2.detune.setValueAtTime(3, time);
+
+    const osc2Gain = audioCtx.createGain();
+    osc2Gain.gain.value = shimmer ? 0.14 : 0.25;
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1550, time);
+    filter.frequency.exponentialRampToValueAtTime(480, time + duration);
+
+    env.gain.setValueAtTime(0.0001, time);
+    env.gain.linearRampToValueAtTime(vol, time + 0.028);
+    env.gain.exponentialRampToValueAtTime(vol * 0.45, time + duration * 0.35);
+    env.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+    osc1.connect(filter);
+    osc2.connect(osc2Gain);
+    osc2Gain.connect(filter);
+    filter.connect(env);
+
+    env.connect(masterGain);
+    if (reverbBus) env.connect(reverbBus);
+
+    osc1.start(time);
+    osc2.start(time);
+    osc1.stop(time + duration + 0.06);
+    osc2.stop(time + duration + 0.06);
+  }
+
+  // เสียง Strings / Warm Pad คลอประสานคอร์ดแบบต่อเนื่องไร้รอยต่อ
+  function scheduleWarmPad(freqs, time, duration = 4.6, vol = 0.024) {
+    if (!soundOn || !audioCtx || !masterGain) return;
+
+    freqs.forEach((f, idx) => {
+      const osc = audioCtx.createOscillator();
+      const filter = audioCtx.createBiquadFilter();
+      const env = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, time);
+      osc.detune.setValueAtTime((idx % 2 === 0 ? 1 : -1) * 4, time);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(750, time);
+
+      env.gain.setValueAtTime(0.0001, time);
+      env.gain.linearRampToValueAtTime(vol, time + 1.1);
+      env.gain.setValueAtTime(vol, time + duration - 1.2);
+      env.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+      osc.connect(filter);
+      filter.connect(env);
+      env.connect(masterGain);
+      if (reverbBus) env.connect(reverbBus);
+
+      osc.start(time);
+      osc.stop(time + duration + 0.08);
+    });
+  }
+
+  function playTone(freq, duration, type = 'sine', vol = 0.045, delay = 0) {
+    if (!soundOn || !audioCtx) return;
+    schedulePianoNote(freq, audioCtx.currentTime + delay, Math.max(duration, 0.7), vol, true);
+  }
+
+  function playFireworkSound() {
+    if (!soundOn || !audioCtx || !masterGain) return;
+    const now = audioCtx.currentTime;
+
+    const bufferSize = Math.floor(audioCtx.sampleRate * 0.5);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.13));
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(420, now);
+    filter.frequency.exponentialRampToValueAtTime(120, now + 0.48);
+
+    const nGain = audioCtx.createGain();
+    nGain.gain.setValueAtTime(0.09, now);
+    nGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.48);
+
+    noise.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(masterGain);
+    noise.start(now);
+
+    schedulePianoNote(1046.50, now + 0.04, 1.2, 0.02, true);
+    schedulePianoNote(1318.51, now + 0.14, 1.4, 0.016, true);
+  }
+
+  // บทเพลงบรรเลงซึ้งๆ 8 ห้อง
+  function startAmbientChime() {
+    if (schedulerId) clearInterval(schedulerId);
+    if (!audioCtx) return;
+
+    const stepDuration = 0.44;
+    sixteenthStep = 0;
+    nextNoteTime = audioCtx.currentTime + 0.08;
+
+    const bars = [
+      {
+        pad: [174.61, 261.63, 329.63, 392.00],
+        arp: [174.61, 261.63, 349.23, 392.00, 440.00, 392.00, 349.23, 261.63],
+        melody: { 0: 523.25, 3: 587.33, 5: 523.25, 7: 440.00 }
+      },
+      {
+        pad: [220.00, 261.63, 329.63, 392.00],
+        arp: [220.00, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00, 329.63],
+        melody: { 0: 392.00, 4: 440.00, 6: 523.25 }
+      },
+      {
+        pad: [146.83, 220.00, 293.66, 349.23],
+        arp: [146.83, 220.00, 293.66, 349.23, 392.00, 349.23, 293.66, 220.00],
+        melody: { 0: 587.33, 2: 523.25, 4: 440.00, 6: 392.00 }
+      },
+      {
+        pad: [116.54, 174.61, 233.08, 293.66],
+        arp: [116.54, 174.61, 233.08, 293.66, 349.23, 392.00, 349.23, 293.66],
+        melody: { 0: 349.23, 3: 392.00, 5: 440.00 }
+      },
+      {
+        pad: [196.00, 233.08, 293.66, 349.23],
+        arp: [196.00, 233.08, 293.66, 349.23, 440.00, 392.00, 349.23, 293.66],
+        melody: { 0: 440.00, 3: 523.25, 6: 440.00 }
+      },
+      {
+        pad: [130.81, 196.00, 261.63, 349.23],
+        arp: [130.81, 196.00, 261.63, 349.23, 329.63, 293.66, 261.63, 196.00],
+        melody: { 0: 392.00, 4: 349.23, 6: 329.63 }
+      },
+      {
+        pad: [174.61, 261.63, 329.63, 440.00],
+        arp: [174.61, 261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00],
+        melody: { 0: 261.63, 2: 349.23, 4: 440.00, 6: 523.25 }
+      },
+      {
+        pad: [164.81, 261.63, 329.63, 392.00],
+        arp: [164.81, 261.63, 329.63, 392.00, 440.00, 392.00, 329.63, 261.63],
+        melody: { 0: 587.33, 4: 523.25, 6: 392.00 }
+      }
+    ];
+
+    const scheduleStep = (step, time) => {
+      const totalSteps = bars.length * 8;
+      const pos = step % totalSteps;
+      const barIdx = Math.floor(pos / 8);
+      const beatInBar = pos % 8;
+      const bar = bars[barIdx];
+
+      if (beatInBar === 0) {
+        scheduleWarmPad(bar.pad, time, stepDuration * 8.4, 0.022);
+      }
+
+      const arpNote = bar.arp[beatInBar];
+      const arpVol = beatInBar === 0 ? 0.044 : (beatInBar === 4 ? 0.034 : 0.025);
+      schedulePianoNote(arpNote, time, beatInBar === 0 ? 3.2 : 1.9, arpVol, beatInBar === 0);
+
+      if (bar.melody[beatInBar]) {
+        schedulePianoNote(bar.melody[beatInBar], time + 0.015, 2.8, 0.056, true);
+      }
+    };
+
+    schedulerId = setInterval(() => {
+      if (!soundOn || !audioCtx) return;
+      while (nextNoteTime < audioCtx.currentTime + 0.25) {
+        scheduleStep(sixteenthStep, nextNoteTime);
+        nextNoteTime += stepDuration;
+        sixteenthStep++;
+      }
+    }, 60);
+  }
+
+  const btnSound = document.getElementById('btnSound');
+  let justUnlocked = false;
+  btnSound.onclick = () => {
+    if (justUnlocked) return;
+    soundOn = !soundOn;
+    if (soundOn) {
+      initAudio();
+      startAmbientChime();
+      btnSound.textContent = '🔊 เพลง: เปิด';
+      btnSound.classList.add('active');
+    } else {
+      if (schedulerId) clearInterval(schedulerId);
+      btnSound.textContent = '🔇 เพลง: ปิด';
+      btnSound.classList.remove('active');
+    }
+  };
+
+  // ตั้งค่า Canvas
+  const cv = document.getElementById('scene');
+  const g = cv.getContext('2d');
+  let W = 0, H = 0, dpr = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // สถานะฉากและแอนิเมชัน
+  let t = 0;
+  let released = false;
+  let releaseProgress = 0;
+  let petalMain = '#ff9ec4';
+  let petalInner = '#ffd6e7';
+  let userWishText = '';
+  let sparklerActive = false;
+
+  // อนุภาคต่างๆ ในฉาก
+  const stars = Array.from({ length: 85 }, () => ({
+    x: Math.random(),
+    y: Math.random() * 0.48,
+    r: Math.random() * 1.4 + 0.35,
+    phase: Math.random() * Math.PI * 2,
+    speed: 1.2 + Math.random() * 2
+  }));
+
+  const bgLanterns = Array.from({ length: 32 }, () => ({
+    x: Math.random(),
+    y: Math.random() * 0.58,
+    s: 5 + Math.random() * 6.5,
+    v: 0.0003 + Math.random() * 0.00055,
+    p: Math.random() * 6.28
+  }));
+
+  const heroLanterns = [];
+  const fireworks = [];
+  const sparklerParticles = [];
+  const waterRipples = [];
+
+  // กิมมิค: ดาวตกอธิษฐาน (Shooting Star)
+  let shootingStar = null;
+  let nextStarTime = 5.5;
+
+  // กิมมิค: หิ่งห้อยริมน้ำที่บินตามนิ้วได้ (Interactive Fireflies)
+  let pointerTarget = null;
+  let pointerTimer = 0;
+  const fireflies = Array.from({ length: 16 }, () => ({
+    x: Math.random() * (window.innerWidth || 400),
+    y: (window.innerHeight || 700) * (0.56 + Math.random() * 0.24),
+    vx: (Math.random() - 0.5) * 0.6,
+    vy: (Math.random() - 0.5) * 0.4,
+    phase: Math.random() * Math.PI * 2,
+    size: 1.8 + Math.random() * 1.5
+  }));
+
+  function showStarWishToast(customText) {
+    const existing = document.querySelector('.star-wish-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'star-wish-toast';
+    toast.textContent = customText || SHOOTING_STAR_WISHES[Math.floor(Math.random() * SHOOTING_STAR_WISHES.length)];
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3500);
+  }
+
+  // ฟังก์ชันจุดพลุที่พิกัด (x, y)
+  function launchFirework(x, y) {
+    const palettes = [
+      ['255, 208, 116', '255, 240, 180'],
+      ['255, 158, 196', '255, 214, 231'],
+      ['126, 200, 255', '214, 239, 255'],
+      ['195, 158, 255', '234, 219, 255']
+    ];
+    const pal = palettes[Math.floor(Math.random() * palettes.length)];
+    const count = 36;
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + (Math.random() * 0.12);
+      const spd = 1.4 + Math.random() * 2.6;
+      fireworks.push({
+        x,
+        y,
+        vx: Math.cos(ang) * spd,
+        vy: Math.sin(ang) * spd,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.008,
+        color: pal[i % 2],
+        size: 1.8 + Math.random() * 1.4
+      });
+    }
+    playFireworkSound();
+  }
+
+  // แตะท้องฟ้าเพื่อจุดพลุ หรือแตะดาวตกเพื่อขอพร
+  cv.addEventListener('pointerdown', (e) => {
+    const rect = cv.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (shootingStar && shootingStar.active) {
+      const dist = Math.hypot(x - shootingStar.x, y - shootingStar.y);
+      if (dist < 56) {
+        shootingStar.active = false;
+        launchFirework(shootingStar.x, shootingStar.y);
+        showStarWishToast();
+        playTone(880, 1.4, 'sine', 0.055);
+        playTone(1174.66, 1.8, 'sine', 0.045, 0.12);
+        return;
+      }
+    }
+
+    if (y < H * 0.62) {
+      launchFirework(x, y);
+      document.getElementById('skyHint').style.opacity = '0';
+    } else if (y < H * 0.80) {
+      waterRipples.push({ x, y, r: 4, maxR: 46, a: 0.7 });
+      pointerTarget = { x, y };
+      pointerTimer = 2.5;
+      playTone(880, 0.8, 'sine', 0.028);
+    }
+  });
+
+  // ลากนิ้วริมน้ำให้หิ่งห้อยบินตามแสงนิ้วอย่างนุ่มนวล
+  cv.addEventListener('pointermove', (e) => {
+    const rect = cv.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (y >= H * 0.48 && y <= H * 0.84) {
+      pointerTarget = { x, y };
+      pointerTimer = 1.6;
+    }
+  });
+
+  // ปุ่มปล่อยโคมลอยเพิ่ม
+  document.getElementById('btnLantern').onclick = () => {
+    for (let i = 0; i < 3; i++) {
+      heroLanterns.push({
+        x: 0.22 + Math.random() * 0.56,
+        y: 0.66 + i * 0.04,
+        v: 0.0012 + Math.random() * 0.0009,
+        p: Math.random() * 6.28,
+        s: 14 + Math.random() * 8
+      });
+    }
+    playTone(587.33, 0.4, 'sine', 0.05);
+    playTone(880, 0.5, 'sine', 0.04, 0.1);
+  };
+
+  // ปุ่มถือไฟเย็น (Sparkler)
+  const btnSparkler = document.getElementById('btnSparkler');
+  btnSparkler.onclick = () => {
+    sparklerActive = !sparklerActive;
+    btnSparkler.classList.toggle('active', sparklerActive);
+    if (sparklerActive) {
+      playTone(1046.5, 0.25, 'triangle', 0.05);
+    }
+  };
+
+  // เลือกสีกระทง
+  document.querySelectorAll('#colorPick .color-chip').forEach((btn) => {
+    btn.onclick = () => {
+      petalMain = btn.dataset.c;
+      petalInner = btn.dataset.c2;
+      document.querySelectorAll('#colorPick .color-chip').forEach((b) => {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      playTone(783.99, 0.2, 'sine', 0.04);
+    };
+  });
+
+  // แท็กคำอธิษฐานสำเร็จรูป
+  const wishInput = document.getElementById('wishInput');
+  document.querySelectorAll('#wishTags .tag-chip').forEach((chip) => {
+    chip.onclick = () => {
+      wishInput.value = chip.dataset.w;
+      userWishText = chip.dataset.w;
+      playTone(659.25, 0.2, 'sine', 0.04);
+    };
+  });
+  wishInput.addEventListener('input', () => {
+    userWishText = wishInput.value.trim();
+  });
+
+  // กดแตะที่ตัวละคร ??? & วาร์ เพื่อให้แสดงท่าทางน่ารัก
+  function setupCharInteract(el, emotes, pitch) {
+    el.addEventListener('click', () => {
+      el.classList.remove('happy-pop');
+      void el.offsetWidth;
+      el.classList.add('happy-pop');
+
+      const pop = document.createElement('div');
+      pop.className = 'emote-pop';
+      pop.textContent = emotes[Math.floor(Math.random() * emotes.length)];
+      el.appendChild(pop);
+      setTimeout(() => pop.remove(), 1500);
+
+      playTone(pitch, 0.22, 'sine', 0.05);
+      playTone(pitch * 1.25, 0.28, 'sine', 0.04, 0.08);
+    });
+  }
+  setupCharInteract(document.getElementById('charOat'), OAT_EMOTES, 523.25);
+  setupCharInteract(document.getElementById('charVar'), VAR_EMOTES, 659.25);
+
+  // วาดกระทงละเอียดน่ารัก
+  function drawKrathong(x, y, scale, labelText) {
+    g.save();
+    g.translate(x, y);
+    g.scale(scale, scale);
+
+    const waterGlow = g.createRadialGradient(0, 12, 2, 0, 12, 46);
+    waterGlow.addColorStop(0, 'rgba(255, 210, 115, 0.42)');
+    waterGlow.addColorStop(1, 'rgba(255, 210, 115, 0)');
+    g.fillStyle = waterGlow;
+    g.beginPath();
+    g.ellipse(0, 12, 46, 14, 0, 0, Math.PI * 2);
+    g.fill();
+
+    g.fillStyle = '#266843';
+    g.beginPath();
+    g.ellipse(0, 7, 36, 12.5, 0, 0, Math.PI * 2);
+    g.fill();
+
+    g.fillStyle = '#388e5c';
+    g.beginPath();
+    g.ellipse(0, 3.5, 31, 10, 0, 0, Math.PI * 2);
+    g.fill();
+
+    for (let k = 0; k < 9; k++) {
+      const ang = -1.45 + k * 0.362;
+      const px = Math.sin(ang) * 24;
+      const py = -Math.cos(ang) * 7 + 1;
+      g.fillStyle = k % 2 === 0 ? petalMain : petalInner;
+      g.beginPath();
+      g.ellipse(px, py, 6.2, 13.5, ang * 0.75, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    for (let k = 0; k < 5; k++) {
+      const ang = -1.1 + k * 0.55;
+      const px = Math.sin(ang) * 13;
+      const py = -Math.cos(ang) * 5 - 2;
+      g.fillStyle = k % 2 === 0 ? '#fff9ec' : petalMain;
+      g.beginPath();
+      g.ellipse(px, py, 5, 10.5, ang * 0.6, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    g.strokeStyle = '#a86b3e';
+    g.lineWidth = 1.4;
+    [-4, 0, 4].forEach((dx, idx) => {
+      g.beginPath();
+      g.moveTo(dx * 0.6, -4);
+      g.lineTo(dx * 1.4, -31 - (idx === 1 ? 3 : 0));
+      g.stroke();
+      g.fillStyle = '#ff6b4a';
+      g.beginPath();
+      g.arc(dx * 1.4, -31 - (idx === 1 ? 3 : 0), 1.3, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    g.fillStyle = '#fff3c4';
+    g.fillRect(-2.3, -25, 4.6, 19);
+
+    const flicker = 1 + Math.sin(t * 10 + x) * 0.14;
+    const halo = g.createRadialGradient(0, -31, 0, 0, -31, 36);
+    halo.addColorStop(0, 'rgba(255, 214, 112, 0.92)');
+    halo.addColorStop(0.45, 'rgba(255, 180, 80, 0.35)');
+    halo.addColorStop(1, 'rgba(255, 180, 80, 0)');
+    g.fillStyle = halo;
+    g.beginPath();
+    g.arc(0, -31, 36, 0, Math.PI * 2);
+    g.fill();
+
+    g.fillStyle = '#ffcf56';
+    g.beginPath();
+    g.ellipse(0, -30, 3.3 * flicker, 6.8 * flicker, 0, 0, Math.PI * 2);
+    g.fill();
+
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.ellipse(0, -29, 1.4, 3.2, 0, 0, Math.PI * 2);
+    g.fill();
+
+    if (labelText) {
+      g.font = '600 11px Mali, sans-serif';
+      const tw = Math.min(g.measureText(labelText).width + 16, 170);
+      g.fillStyle = 'rgba(255, 248, 235, 0.9)';
+      g.beginPath();
+      g.roundRect(-tw / 2, -62, tw, 20, 10);
+      g.fill();
+      g.fillStyle = '#4a2c18';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      const shortTxt = labelText.length > 22 ? labelText.slice(0, 21) + '…' : labelText;
+      g.fillText(shortTxt, 0, -52);
+    }
+
+    g.restore();
+  }
+
+  // วาดดอกบัวและกอบัวริมน้ำ
+  function drawWaterPlants(waterTop, waterHeight) {
+    const baseY = waterTop + waterHeight - 6;
+    const clusters = [W * 0.08, W * 0.92];
+    clusters.forEach((cx, idx) => {
+      const dir = idx === 0 ? 1 : -1;
+      g.fillStyle = '#184a30';
+      g.beginPath();
+      g.ellipse(cx - dir * 12, baseY + 2, 20, 6, 0, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#1e593a';
+      g.beginPath();
+      g.ellipse(cx, baseY, 26, 7.5, 0, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#2d7a52';
+      g.beginPath();
+      g.ellipse(cx + dir * 18, baseY + 3, 19, 6, 0, 0, Math.PI * 2);
+      g.fill();
+
+      const fx = cx + dir * 6;
+      const fy = baseY - 13 + Math.sin(t * 2 + idx) * 1.5;
+      g.strokeStyle = '#2b754e';
+      g.lineWidth = 2.6;
+      g.beginPath();
+      g.moveTo(fx, baseY);
+      g.lineTo(fx, fy + 4);
+      g.stroke();
+
+      g.fillStyle = '#f47ca8';
+      g.beginPath();
+      g.ellipse(fx - 5, fy + 1, 4.2, 8.5, -0.45, 0, Math.PI * 2);
+      g.ellipse(fx + 5, fy + 1, 4.2, 8.5, 0.45, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#ffa6c9';
+      g.beginPath();
+      g.ellipse(fx - 2.5, fy, 4, 9, -0.2, 0, Math.PI * 2);
+      g.ellipse(fx + 2.5, fy, 4, 9, 0.2, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#ffe0ed';
+      g.beginPath();
+      g.ellipse(fx, fy - 1.5, 3.6, 9.2, 0, 0, Math.PI * 2);
+      g.fill();
+    });
+  }
+
+  // ละอองแสงโบเก้อุ่นๆ
+  const bokehOrbs = Array.from({ length: 22 }, () => ({
+    x: Math.random(),
+    y: 0.12 + Math.random() * 0.68,
+    r: 10 + Math.random() * 26,
+    vx: (Math.random() - 0.5) * 0.00018,
+    vy: -0.00012 - Math.random() * 0.00018,
+    phase: Math.random() * Math.PI * 2,
+    warm: Math.random() > 0.35
+  }));
+
+  // เรือประดับไฟลอยเอื่อยๆ + กลีบดอกไม้ลอยน้ำ
+  const distantBoats = [
+    { x: 0.18, y: 0.555, vx: 0.00014, dir: 1, scale: 0.85 },
+    { x: 0.82, y: 0.585, vx: -0.00011, dir: -1, scale: 1.0 }
+  ];
+
+  const floatingPetals = Array.from({ length: 24 }, () => ({
+    x: Math.random(),
+    y: 0.55 + Math.random() * 0.24,
+    vx: (Math.random() - 0.5) * 0.00025 + 0.00012,
+    phase: Math.random() * Math.PI * 2,
+    size: 2.2 + Math.random() * 1.8,
+    pink: Math.random() > 0.4
+  }));
+
+  function drawRiversideSkyline(waterTop, isReflection) {
+    g.save();
+    if (isReflection) {
+      g.translate(0, waterTop * 2);
+      g.scale(1, -0.62);
+      g.globalAlpha = 0.36;
+    }
+
+    if (!isReflection) {
+      g.fillStyle = 'rgba(28, 25, 68, 0.62)';
+      g.beginPath();
+      g.moveTo(0, waterTop);
+      for (let x = 0; x <= W; x += 32) {
+        const ridge = Math.sin(x * 0.0055 + 0.8) * 14 + Math.cos(x * 0.011) * 7;
+        g.lineTo(x, waterTop - 22 - Math.abs(ridge));
+      }
+      g.lineTo(W, waterTop);
+      g.closePath();
+      g.fill();
+    }
+
+    g.fillStyle = isReflection ? '#070a24' : '#0b0e2b';
+    g.beginPath();
+    g.moveTo(0, waterTop);
+    for (let x = 0; x <= W; x += 20) {
+      const hill = Math.sin(x * 0.012) * 8 + Math.cos(x * 0.03) * 5;
+      g.lineTo(x, waterTop - 9 - Math.abs(hill));
+    }
+    g.lineTo(W, waterTop);
+    g.closePath();
+    g.fill();
+
+    const templeX = W * 0.22;
+    const baseY = waterTop - 10;
+    g.fillStyle = isReflection ? '#060920' : '#090c26';
+    g.beginPath();
+    g.moveTo(templeX - 24, baseY);
+    g.lineTo(templeX - 16, baseY - 14);
+    g.lineTo(templeX - 6, baseY - 19);
+    g.lineTo(templeX, baseY - 42);
+    g.lineTo(templeX + 6, baseY - 19);
+    g.lineTo(templeX + 16, baseY - 14);
+    g.lineTo(templeX + 24, baseY);
+    g.closePath();
+    g.fill();
+
+    const salaX = W * 0.74;
+    g.beginPath();
+    g.moveTo(salaX - 28, baseY);
+    g.lineTo(salaX - 28, baseY - 11);
+    g.lineTo(salaX - 34, baseY - 11);
+    g.lineTo(salaX, baseY - 26);
+    g.lineTo(salaX + 34, baseY - 11);
+    g.lineTo(salaX + 28, baseY - 11);
+    g.lineTo(salaX + 28, baseY);
+    g.closePath();
+    g.fill();
+
+    const lights = [
+      { x: templeX, y: baseY - 43, r: 1.8 },
+      { x: templeX - 12, y: baseY - 14, r: 1.3 },
+      { x: templeX + 12, y: baseY - 14, r: 1.3 },
+      { x: salaX - 20, y: baseY - 8, r: 1.4 },
+      { x: salaX, y: baseY - 8, r: 1.4 },
+      { x: salaX + 20, y: baseY - 8, r: 1.4 }
+    ];
+    lights.forEach((lt, idx) => {
+      const shimmer = 0.65 + 0.35 * Math.sin(t * 3 + idx);
+      const lx = isReflection ? lt.x + Math.sin(t * 2.5 + idx) * 3 : lt.x;
+      g.fillStyle = `rgba(255, 214, 120, ${shimmer})`;
+      g.beginPath();
+      g.arc(lx, lt.y, lt.r, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    g.restore();
+  }
+
+  // ลูปเรนเดอร์หลัก 60fps
+  function render() {
+    t += 0.016;
+
+    const skyGrad = g.createLinearGradient(0, 0, 0, H * 0.56);
+    skyGrad.addColorStop(0, '#040618');
+    skyGrad.addColorStop(0.42, '#11143b');
+    skyGrad.addColorStop(0.78, '#261e54');
+    skyGrad.addColorStop(1, '#47306b');
+    g.fillStyle = skyGrad;
+    g.fillRect(0, 0, W, H);
+
+    const nebulaGrad = g.createRadialGradient(W * 0.48, H * 0.24, 10, W * 0.48, H * 0.24, W * 0.62);
+    nebulaGrad.addColorStop(0, 'rgba(156, 126, 232, 0.14)');
+    nebulaGrad.addColorStop(0.48, 'rgba(255, 174, 138, 0.08)');
+    nebulaGrad.addColorStop(1, 'rgba(10, 14, 42, 0)');
+    g.fillStyle = nebulaGrad;
+    g.fillRect(0, 0, W, H * 0.56);
+
+    stars.forEach((s, idx) => {
+      const alpha = 0.3 + 0.65 * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+      const sx = s.x * W;
+      const sy = s.y * H;
+      g.fillStyle = `rgba(255, 248, 228, ${alpha})`;
+      g.beginPath();
+      g.arc(sx, sy, s.r, 0, Math.PI * 2);
+      g.fill();
+
+      if (idx % 8 === 0 && alpha > 0.62) {
+        g.strokeStyle = `rgba(255, 246, 214, ${alpha * 0.48})`;
+        g.lineWidth = 1;
+        g.beginPath();
+        g.moveTo(sx - 5, sy);
+        g.lineTo(sx + 5, sy);
+        g.moveTo(sx, sy - 5);
+        g.lineTo(sx, sy + 5);
+        g.stroke();
+      }
+    });
+
+    if (!shootingStar && t >= nextStarTime) {
+      const fromLeft = Math.random() > 0.35;
+      shootingStar = {
+        active: true,
+        x: fromLeft ? W * (0.1 + Math.random() * 0.3) : W * (0.6 + Math.random() * 0.3),
+        y: H * (0.07 + Math.random() * 0.15),
+        vx: (fromLeft ? 1 : -1) * (3.6 + Math.random() * 1.4),
+        vy: 1.5 + Math.random() * 0.7,
+        life: 1
+      };
+      nextStarTime = t + 11 + Math.random() * 8;
+    }
+    if (shootingStar && shootingStar.active) {
+      shootingStar.x += shootingStar.vx;
+      shootingStar.y += shootingStar.vy;
+      shootingStar.life -= 0.0085;
+      if (shootingStar.life <= 0 || shootingStar.x < -40 || shootingStar.x > W + 40) {
+        shootingStar = null;
+      } else {
+        const tailX = shootingStar.x - shootingStar.vx * 18;
+        const tailY = shootingStar.y - shootingStar.vy * 18;
+        const sGrad = g.createLinearGradient(shootingStar.x, shootingStar.y, tailX, tailY);
+        sGrad.addColorStop(0, `rgba(255, 250, 225, ${shootingStar.life})`);
+        sGrad.addColorStop(1, 'rgba(255, 214, 120, 0)');
+        g.strokeStyle = sGrad;
+        g.lineWidth = 2.4;
+        g.lineCap = 'round';
+        g.beginPath();
+        g.moveTo(shootingStar.x, shootingStar.y);
+        g.lineTo(tailX, tailY);
+        g.stroke();
+
+        g.fillStyle = `rgba(255, 252, 235, ${shootingStar.life})`;
+        g.beginPath();
+        g.arc(shootingStar.x, shootingStar.y, 2.8, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+
+    const moonX = W * 0.8;
+    const moonY = H * 0.14;
+    const moonHalo = g.createRadialGradient(moonX, moonY, 12, moonX, moonY, 115);
+    moonHalo.addColorStop(0, 'rgba(255, 245, 214, 0.66)');
+    moonHalo.addColorStop(0.45, 'rgba(255, 226, 165, 0.24)');
+    moonHalo.addColorStop(1, 'rgba(255, 226, 165, 0)');
+    g.fillStyle = moonHalo;
+    g.beginPath();
+    g.arc(moonX, moonY, 115, 0, Math.PI * 2);
+    g.fill();
+
+    const moonBodyGrad = g.createRadialGradient(moonX - 6, moonY - 6, 4, moonX, moonY, 25);
+    moonBodyGrad.addColorStop(0, '#fffdf5');
+    moonBodyGrad.addColorStop(0.75, '#fff3cf');
+    moonBodyGrad.addColorStop(1, '#f7dfa4');
+    g.fillStyle = moonBodyGrad;
+    g.beginPath();
+    g.arc(moonX, moonY, 25, 0, Math.PI * 2);
+    g.fill();
+
+    const waterTop = H * 0.52;
+    const waterHeight = H * 0.28;
+    drawRiversideSkyline(waterTop, false);
+
+    const mistGrad = g.createLinearGradient(0, waterTop - 16, 0, waterTop + 26);
+    mistGrad.addColorStop(0, 'rgba(218, 198, 255, 0)');
+    mistGrad.addColorStop(0.55, 'rgba(218, 198, 255, 0.085)');
+    mistGrad.addColorStop(1, 'rgba(218, 198, 255, 0)');
+    g.fillStyle = mistGrad;
+    g.fillRect(0, waterTop - 16, W, 42);
+
+    bgLanterns.forEach((l) => {
+      l.y -= l.v;
+      if (l.y < -0.05) {
+        l.y = 0.56;
+        l.x = Math.random();
+      }
+      const lx = l.x * W + Math.sin(t * 0.9 + l.p) * 9;
+      const ly = l.y * H;
+      const alpha = Math.max(0, Math.min(1, (0.56 - l.y) * 3.5));
+
+      const lGlow = g.createRadialGradient(lx, ly, 0, lx, ly, l.s * 3.5);
+      lGlow.addColorStop(0, `rgba(255, 194, 92, ${0.72 * alpha})`);
+      lGlow.addColorStop(1, 'rgba(255, 194, 92, 0)');
+      g.fillStyle = lGlow;
+      g.beginPath();
+      g.arc(lx, ly, l.s * 3.5, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = `rgba(255, 218, 145, ${alpha})`;
+      g.beginPath();
+      g.ellipse(lx, ly, l.s * 0.58, l.s * 0.85, 0, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    const waterGrad = g.createLinearGradient(0, waterTop, 0, waterTop + waterHeight);
+    waterGrad.addColorStop(0, '#231f54');
+    waterGrad.addColorStop(0.28, '#141947');
+    waterGrad.addColorStop(0.68, '#0c1133');
+    waterGrad.addColorStop(1, '#06091c');
+    g.fillStyle = waterGrad;
+    g.fillRect(0, waterTop, W, waterHeight);
+
+    drawRiversideSkyline(waterTop, true);
+
+    const warmWaterRef = g.createRadialGradient(W * 0.5, waterTop + 28, 12, W * 0.5, waterTop + 28, W * 0.52);
+    warmWaterRef.addColorStop(0, 'rgba(255, 196, 112, 0.16)');
+    warmWaterRef.addColorStop(0.55, 'rgba(214, 150, 190, 0.07)');
+    warmWaterRef.addColorStop(1, 'rgba(255, 190, 105, 0)');
+    g.fillStyle = warmWaterRef;
+    g.fillRect(0, waterTop, W, waterHeight);
+
+    for (let row = 0; row < 16; row++) {
+      const ratio = row / 16;
+      const wy = waterTop + 6 + ratio * (waterHeight - 10);
+      const speed = (row % 2 === 0 ? 1 : -1) * (0.4 + ratio * 0.5);
+      g.strokeStyle = `rgba(170, 195, 255, ${0.045 + ratio * 0.03})`;
+      g.lineWidth = 1 + ratio * 0.8;
+      g.beginPath();
+      for (let wx = -20; wx <= W + 20; wx += 45) {
+        const offset = Math.sin(t * speed + wx * 0.02 + row) * (2.5 + ratio * 2);
+        if (wx === -20) g.moveTo(wx, wy + offset);
+        else g.lineTo(wx, wy + offset);
+      }
+      g.stroke();
+    }
+
+    for (let i = 0; i < 16; i++) {
+      const ry = waterTop + 8 + i * (waterHeight / 17);
+      const rw = 58 - i * 2.8 + Math.sin(t * 3 + i) * 4;
+      const wave = Math.sin(t * 2.2 + i * 0.85) * 10;
+      g.strokeStyle = `rgba(255, 244, 214, ${0.38 - i * 0.02})`;
+      g.lineWidth = 2.2;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(moonX - rw + wave, ry);
+      g.lineTo(moonX + rw - wave, ry);
+      g.stroke();
+    }
+
+    for (let k = 0; k < 22; k++) {
+      const gx = ((k * 73 + Math.sin(t * 0.4 + k) * 30) % W + W) % W;
+      const gy = waterTop + 10 + ((k * 37) % Math.max(20, waterHeight - 18));
+      const glintAlpha = Math.max(0, Math.sin(t * 4.2 + k * 1.9));
+      if (glintAlpha > 0.4) {
+        g.fillStyle = `rgba(255, 248, 224, ${(glintAlpha - 0.4) * 0.85})`;
+        g.beginPath();
+        g.arc(gx, gy, 1.3, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+
+    distantBoats.forEach((boat) => {
+      boat.x += boat.vx;
+      if (boat.x > 1.08) boat.x = -0.08;
+      if (boat.x < -0.08) boat.x = 1.08;
+
+      const bx = boat.x * W;
+      const by = boat.y * H + Math.sin(t * 1.8 + boat.x * 10) * 1.2;
+      g.save();
+      g.translate(bx, by);
+      g.scale(boat.scale * boat.dir, boat.scale);
+
+      const bRef = g.createRadialGradient(0, 5, 1, 0, 5, 24);
+      bRef.addColorStop(0, 'rgba(255, 200, 100, 0.35)');
+      bRef.addColorStop(1, 'rgba(255, 200, 100, 0)');
+      g.fillStyle = bRef;
+      g.beginPath();
+      g.ellipse(0, 5, 24, 6, 0, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#090c24';
+      g.beginPath();
+      g.moveTo(-22, -3);
+      g.quadraticCurveTo(0, 4, 22, -3);
+      g.lineTo(15, 2);
+      g.lineTo(-15, 2);
+      g.closePath();
+      g.fill();
+
+      g.fillStyle = '#ffd27a';
+      g.beginPath();
+      g.arc(-16, -4, 1.6, 0, Math.PI * 2);
+      g.arc(0, -5, 1.8, 0, Math.PI * 2);
+      g.arc(16, -4, 1.6, 0, Math.PI * 2);
+      g.fill();
+
+      g.restore();
+    });
+
+    floatingPetals.forEach((pt) => {
+      pt.x += pt.vx;
+      if (pt.x > 1.03) pt.x = -0.03;
+      const px = pt.x * W;
+      const py = pt.y * H + Math.sin(t * 1.7 + pt.phase) * 2;
+      g.fillStyle = pt.pink ? 'rgba(255, 174, 208, 0.72)' : 'rgba(255, 242, 210, 0.68)';
+      g.beginPath();
+      g.ellipse(px, py, pt.size, pt.size * 0.52, Math.sin(t + pt.phase) * 0.4, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    for (let i = waterRipples.length - 1; i >= 0; i--) {
+      const rp = waterRipples[i];
+      rp.r += 0.9;
+      rp.a -= 0.015;
+      if (rp.a <= 0) {
+        waterRipples.splice(i, 1);
+        continue;
+      }
+      g.strokeStyle = `rgba(255, 224, 150, ${rp.a})`;
+      g.lineWidth = 1.5;
+      g.beginPath();
+      g.ellipse(rp.x, rp.y, rp.r, rp.r * 0.32, 0, 0, Math.PI * 2);
+      g.stroke();
+    }
+
+    drawWaterPlants(waterTop, waterHeight);
+
+    if (pointerTimer > 0) {
+      pointerTimer -= 0.016;
+      if (pointerTimer <= 0) pointerTarget = null;
+    }
+    fireflies.forEach((f) => {
+      if (pointerTarget) {
+        const dx = pointerTarget.x - f.x;
+        const dy = pointerTarget.y - f.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 18 && dist < 260) {
+          f.vx += (dx / dist) * 0.045;
+          f.vy += (dy / dist) * 0.045;
+        }
+      }
+      f.vx += (Math.random() - 0.5) * 0.04;
+      f.vy += (Math.random() - 0.5) * 0.03;
+      f.vx *= 0.96;
+      f.vy *= 0.96;
+      f.x += f.vx;
+      f.y += f.vy;
+
+      if (f.x < 12) f.x = 12;
+      if (f.x > W - 12) f.x = W - 12;
+      if (f.y < H * 0.52) f.vy += 0.04;
+      if (f.y > H * 0.84) f.vy -= 0.04;
+
+      const glow = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 3.2 + f.phase));
+      const fHalo = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.size * 5.8);
+      fHalo.addColorStop(0, `rgba(255, 236, 130, ${0.78 * glow})`);
+      fHalo.addColorStop(1, 'rgba(255, 220, 90, 0)');
+      g.fillStyle = fHalo;
+      g.beginPath();
+      g.arc(f.x, f.y, f.size * 5.8, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = `rgba(255, 250, 200, ${glow})`;
+      g.beginPath();
+      g.arc(f.x, f.y, f.size * 0.75, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    bokehOrbs.forEach((b) => {
+      b.x += b.vx;
+      b.y += b.vy;
+      if (b.y < 0.05) {
+        b.y = 0.78;
+        b.x = Math.random();
+      }
+      if (b.x < 0) b.x = 1;
+      if (b.x > 1) b.x = 0;
+
+      const bx = b.x * W;
+      const by = b.y * H;
+      const bAlpha = 0.045 + 0.045 * Math.sin(t * 1.4 + b.phase);
+      const bGrad = g.createRadialGradient(bx, by, 0, bx, by, b.r);
+      if (b.warm) {
+        bGrad.addColorStop(0, `rgba(255, 212, 130, ${bAlpha * 1.45})`);
+        bGrad.addColorStop(1, 'rgba(255, 212, 130, 0)');
+      } else {
+        bGrad.addColorStop(0, `rgba(255, 175, 210, ${bAlpha * 1.35})`);
+        bGrad.addColorStop(1, 'rgba(255, 175, 210, 0)');
+      }
+      g.fillStyle = bGrad;
+      g.beginPath();
+      g.arc(bx, by, b.r, 0, Math.PI * 2);
+      g.fill();
+    });
+
+    const baseWaterY = H * 0.77;
+    const centerX = W / 2;
+
+    if (!released) {
+      const bob1 = Math.sin(t * 2.1) * 2.2;
+      const bob2 = Math.sin(t * 2.1 + 1.1) * 2.2;
+      drawKrathong(centerX - 66, baseWaterY + bob1, 1.08, '');
+      drawKrathong(centerX + 66, baseWaterY + bob2, 1.08, userWishText);
+    } else {
+      releaseProgress += 0.0042;
+      const p = Math.min(releaseProgress, 1);
+      const ease = 1 - Math.pow(1 - p, 2.1);
+      const driftY = baseWaterY - ease * (H * 0.21);
+      const scale = 1.08 - ease * 0.56;
+      const driftX = ease * (W * 0.13) + Math.sin(t * 1.4) * 3;
+
+      drawKrathong(centerX - 66 - driftX, driftY, scale, '');
+      drawKrathong(centerX + 66 + driftX * 0.45, driftY + Math.sin(t * 1.6) * 2, scale, p < 0.85 ? userWishText : '');
+
+      const cardOverlay = document.getElementById('cardOverlay');
+      if (p >= 1 && !cardOverlay.dataset.shown) {
+        cardOverlay.dataset.shown = '1';
+        setTimeout(() => {
+          if (userWishText) {
+            const badge = document.getElementById('cardWishShow');
+            badge.textContent = `🪷 คำอธิษฐานที่ลอยไป: "${userWishText}"`;
+            badge.classList.remove('hide');
+          }
+          cardOverlay.style.display = 'flex';
+          document.getElementById('btnReopenCard').classList.remove('hide');
+        }, 850);
+      }
+    }
+
+    for (let i = heroLanterns.length - 1; i >= 0; i--) {
+      const b = heroLanterns[i];
+      b.y -= b.v;
+      if (b.y < -0.1) {
+        heroLanterns.splice(i, 1);
+        continue;
+      }
+      const bx = b.x * W + Math.sin(t * 1.3 + b.p) * 12;
+      const by = b.y * H;
+      const alpha = Math.max(0, Math.min(1, b.y / 0.12));
+
+      const bGlow = g.createRadialGradient(bx, by, 0, bx, by, b.s * 3.4);
+      bGlow.addColorStop(0, `rgba(255, 195, 95, ${0.82 * alpha})`);
+      bGlow.addColorStop(1, 'rgba(255, 195, 95, 0)');
+      g.fillStyle = bGlow;
+      g.beginPath();
+      g.arc(bx, by, b.s * 3.4, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = `rgba(255, 212, 130, ${alpha})`;
+      g.beginPath();
+      g.ellipse(bx, by, b.s * 0.68, b.s * 0.95, 0, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = `rgba(255, 248, 225, ${alpha})`;
+      g.beginPath();
+      g.ellipse(bx, by + b.s * 0.35, b.s * 0.24, b.s * 0.38, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    if (sparklerActive) {
+      const sPoints = [
+        { x: centerX - 108, y: H * 0.72 + Math.sin(t * 3) * 4 },
+        { x: centerX + 108, y: H * 0.72 + Math.cos(t * 3) * 4 }
+      ];
+      sPoints.forEach((sp) => {
+        g.strokeStyle = '#b0a8a0';
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(sp.x, sp.y + 24);
+        g.lineTo(sp.x, sp.y);
+        g.stroke();
+
+        const sg = g.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, 24);
+        sg.addColorStop(0, 'rgba(255, 252, 220, 0.95)');
+        sg.addColorStop(0.4, 'rgba(255, 200, 90, 0.5)');
+        sg.addColorStop(1, 'rgba(255, 200, 90, 0)');
+        g.fillStyle = sg;
+        g.beginPath();
+        g.arc(sp.x, sp.y, 24, 0, Math.PI * 2);
+        g.fill();
+
+        for (let k = 0; k < 3; k++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 1 + Math.random() * 2.5;
+          sparklerParticles.push({
+            x: sp.x,
+            y: sp.y,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd - 0.5,
+            life: 1
+          });
+        }
+      });
+    }
+
+    for (let i = sparklerParticles.length - 1; i >= 0; i--) {
+      const sp = sparklerParticles[i];
+      sp.x += sp.vx;
+      sp.y += sp.vy;
+      sp.vy += 0.08;
+      sp.life -= 0.045;
+      if (sp.life <= 0) {
+        sparklerParticles.splice(i, 1);
+        continue;
+      }
+      g.fillStyle = `rgba(255, 232, 145, ${sp.life})`;
+      g.beginPath();
+      g.arc(sp.x, sp.y, 1.5, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    for (let i = fireworks.length - 1; i >= 0; i--) {
+      const p = fireworks[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.032;
+      p.vx *= 0.984;
+      p.life -= p.decay;
+      if (p.life <= 0) {
+        fireworks.splice(i, 1);
+        continue;
+      }
+      g.fillStyle = `rgba(${p.color}, ${Math.max(0, p.life)})`;
+      g.beginPath();
+      g.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    const vigGrad = g.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.28, W * 0.5, H * 0.48, Math.max(W, H) * 0.76);
+    vigGrad.addColorStop(0, 'rgba(4, 6, 20, 0)');
+    vigGrad.addColorStop(1, 'rgba(3, 5, 16, 0.34)');
+    g.fillStyle = vigGrad;
+    g.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(render);
+  }
+  render();
+
+  // ลำดับการดำเนินเรื่องและบทสนทนา
+  let step = -1;
+  const mainBtn = document.getElementById('mainBtn');
+  const bubble = document.getElementById('bubble');
+  const speakerName = document.getElementById('speakerName');
+  const speakerText = document.getElementById('speakerText');
+  const heroTitle = document.getElementById('heroTitle');
+  const prepPanel = document.getElementById('prepPanel');
+  const charOat = document.getElementById('charOat');
+  const charVar = document.getElementById('charVar');
+
+  function updateSpeakingCharacter(who) {
+    charOat.classList.toggle('speaking', who === '???');
+    charVar.classList.toggle('speaking', who === 'วาร์');
+  }
+
+  mainBtn.onclick = () => {
+    if (step === -2) return;
+
+    if (step === LINES.length - 1) {
+      released = true;
+      userWishText = wishInput.value.trim();
+
+      for (let q = 0; q < 10; q++) {
+        heroLanterns.push({
+          x: 0.2 + Math.random() * 0.6,
+          y: 0.78 + q * 0.055,
+          v: 0.0013 + Math.random() * 0.0011,
+          p: Math.random() * 6.28,
+          s: 15 + Math.random() * 10
+        });
+      }
+
+      mainBtn.classList.add('hide');
+      bubble.classList.add('hide');
+      prepPanel.classList.add('hide');
+      updateSpeakingCharacter('');
+
+      [800, 1700, 2600, 3600, 4500].forEach((delay) => {
+        setTimeout(() => {
+          launchFirework(W * (0.2 + Math.random() * 0.6), H * (0.14 + Math.random() * 0.24));
+        }, delay);
+      });
+
+      step = -2;
+      return;
+    }
+
+    heroTitle.classList.add('hide');
+    step++;
+
+    if (step < LINES.length) {
+      const line = LINES[step];
+      bubble.classList.remove('hide', 'speaker-oat', 'speaker-var');
+      bubble.classList.add(line.cls);
+      speakerName.textContent = line.who;
+      speakerText.textContent = line.text;
+      updateSpeakingCharacter(line.who);
+
+      const isLast = step === LINES.length - 1;
+      mainBtn.textContent = isLast ? 'ปล่อยกระทง & โคม! 🪷' : 'ต่อไป';
+      prepPanel.classList.toggle('hide', !isLast);
+
+      playTone(line.who === '???' ? 523.25 : 659.25, 0.22, 'sine', 0.045);
+    }
+  };
+
+  // เปิดเพลงประกอบทันทีที่เข้าเว็บ (ปลดล็อกเมื่อแตะครั้งแรก)
+  function autoStartMusic() {
+    soundOn = true;
+    initAudio();
+    if (!audioCtx) {
+      soundOn = false;
+      btnSound.textContent = '🔇 เพลง: ปิด';
+      btnSound.classList.remove('active');
+      return;
+    }
+    startAmbientChime();
+    btnSound.textContent = '🔊 เพลง: เปิด';
+    btnSound.classList.add('active');
+
+    if (audioCtx.state !== 'running') {
+      const events = ['pointerdown', 'touchstart', 'keydown', 'click'];
+      const unlock = () => {
+        events.forEach((ev) => window.removeEventListener(ev, unlock, true));
+        justUnlocked = true;
+        setTimeout(() => { justUnlocked = false; }, 450);
+        const go = () => {
+          if (!soundOn) return;
+          sixteenthStep = 0;
+          nextNoteTime = audioCtx.currentTime + 0.08;
+        };
+        const p = audioCtx.resume();
+        if (p && p.then) p.then(go).catch(() => {}); else go();
+      };
+      events.forEach((ev) => window.addEventListener(ev, unlock, true));
+    }
+  }
+  autoStartMusic();
+
+  // =========================================================================
+  // ระบบแต่งตัว ??? & วาร์
+  // =========================================================================
+  const OAT_OUTFITS = [
+    { n: 'ครีมราชปะแตน', a: '#fffaf0', b: '#eadbc8', sash: '#9c6644', trim: '#c8ad8d', btn: '#b5946b', line: '#d4c0a8' },
+    { n: 'ม่อฮ่อมคราม', a: '#5a76ad', b: '#34497a', sash: '#e8d3a2', trim: '#243659', btn: '#f0dca8', line: '#2a3b66' },
+    { n: 'เขียวมรกต', a: '#6dbd96', b: '#357c5d', sash: '#f2d27a', trim: '#245a43', btn: '#ffe9b0', line: '#2b6a50' },
+    { n: 'แดงทับทิม', a: '#d9677b', b: '#a53c53', sash: '#ffe2a0', trim: '#7a2438', btn: '#ffe2a0', line: '#8a2c42' },
+    { n: 'เหลืองทอง', a: '#ffe08c', b: '#e3b04b', sash: '#8c4f2b', trim: '#b4812f', btn: '#8c4f2b', line: '#c79a45' },
+    { n: 'ม่วงลาเวนเดอร์', a: '#b79af0', b: '#7f62c4', sash: '#fff0c9', trim: '#5a3f99', btn: '#fff0c9', line: '#6a4fae' }
+  ];
+  const VAR_OUTFITS = [
+    { n: 'ครามสไบทอง', sk: ['#485678', '#2b354d'], blouse: '#fffaf2', sab: ['#ffe29a', '#e5ae49', '#c68628'], hem: '#ffd074', dash: '#fff6d6', d1: '#485678', d2: '#e5ae49' },
+    { n: 'ชมพูกลีบบัว', sk: ['#e48aa8', '#b04e70'], blouse: '#fff6f9', sab: ['#fff3d2', '#f8d684', '#d9a441'], hem: '#fff0c9', dash: '#ffffff', d1: '#e48aa8', d2: '#f8d684' },
+    { n: 'เขียวหยก', sk: ['#4aa088', '#27604f'], blouse: '#fbfff8', sab: ['#ffeab5', '#e9bb55', '#c68628'], hem: '#ffe9b0', dash: '#fff6d6', d1: '#4aa088', d2: '#e9bb55' },
+    { n: 'ม่วงไหมไทย', sk: ['#8a68c4', '#523a8a'], blouse: '#fbf7ff', sab: ['#ffd9ea', '#f19bc3', '#c76c9a'], hem: '#ffd6e7', dash: '#ffffff', d1: '#8a68c4', d2: '#f19bc3' },
+    { n: 'แดงเลือดหมู', sk: ['#bb4358', '#7d2438'], blouse: '#fff8f2', sab: ['#ffe29a', '#e5ae49', '#c68628'], hem: '#ffd074', dash: '#fff6d6', d1: '#bb4358', d2: '#e5ae49' },
+    { n: 'ฟ้าอมน้ำทะเล', sk: ['#7fb8e8', '#4a82b8'], blouse: '#ffffff', sab: ['#fff0c9', '#ffcb6b', '#e09f3e'], hem: '#fff0c9', dash: '#ffffff', d1: '#7fb8e8', d2: '#ffcb6b' },
+    { n: 'พีชละมุน', sk: ['#f29f85', '#c9684e'], blouse: '#fffaf5', sab: ['#ffe7b3', '#f5c26b', '#d19236'], hem: '#ffe7b3', dash: '#ffffff', d1: '#f29f85', d2: '#f5c26b' },
+    { n: 'ขาวบริสุทธิ์', sk: ['#efe6d8', '#cbbba3'], blouse: '#ffffff', sab: ['#ffd6e7', '#f7a1c4', '#d6729c'], hem: '#e5ae49', dash: '#fff6d6', d1: '#efe6d8', d2: '#f7a1c4' }
+  ];
+  const OAT_HAIRS = [
+    { n: 'น้ำตาลเข้ม', a: '#3c2a21', b: '#221611' },
+    { n: 'น้ำตาลคาราเมล', a: '#6e4934', b: '#452b1d' },
+    { n: 'ดำสนิท', a: '#242228', b: '#111014' }
+  ];
+  const VAR_HAIRS = [
+    { n: 'น้ำตาลช็อกโกแลต', a: '#35241e', b: '#1e1310' },
+    { n: 'น้ำตาลน้ำผึ้ง', a: '#7a5238', b: '#4d3120' },
+    { n: 'น้ำตาลประกายชมพู', a: '#6b3e4b', b: '#3d2029' },
+    { n: 'ดำเงางาม', a: '#25232b', b: '#100f14' }
+  ];
+  const OAT_ACCS = [
+    { id: 'oatGarland', n: '🌼 พวงมาลัยดาวเรือง' },
+    { id: 'oatGlasses', n: '👓 แว่นกลม' },
+    { id: 'oatEarFlower', n: '🌸 ดอกไม้ทัดหู' },
+    { id: 'oatBand', n: '🎀 ผ้าคาดผม' }
+  ];
+  const VAR_ACCS = [
+    { id: 'varFlower', n: '🌺 ดอกไม้ทัดผม' },
+    { id: 'varCrown', n: '👑 เกี้ยวทอง' },
+    { id: 'varEar', n: '✨ ต่างหูทอง' },
+    { id: 'varJasmine', n: '🤍 มาลัยมะลิ' },
+    { id: 'varBow', n: '🎀 โบว์ริบบิ้น' },
+    { id: 'varBunny', n: '🐰 หูกระต่าย' },
+    { id: 'varGlasses', n: '👓 แว่นน่ารัก' },
+    { id: 'varHandLantern', n: '🏮 โคมถือ' },
+    { id: 'varStarWand', n: '🪄 คฑาดาววิ้ง' }
+  ];
+
+  const dressState = {
+    oat: { outfit: 0, hair: 0, acc: {} },
+    var: { outfit: 0, hair: 0, acc: { varFlower: true } }
+  };
+  let dressWho = 'var';
+  const $ = (id) => document.getElementById(id);
+
+  function applyOatOutfit(i) {
+    const o = OAT_OUTFITS[i];
+    $('oatShirtA').setAttribute('stop-color', o.a);
+    $('oatShirtB').setAttribute('stop-color', o.b);
+    $('oatBody').setAttribute('stroke', o.line);
+    $('oatCollar').setAttribute('stroke', o.trim);
+    $('oatSash').setAttribute('fill', o.sash);
+    $('oatArmL').setAttribute('stroke', o.b);
+    $('oatArmR').setAttribute('stroke', o.b);
+    document.querySelectorAll('.oat-btn').forEach((c) => c.setAttribute('fill', o.btn));
+  }
+  function applyVarOutfit(i) {
+    const o = VAR_OUTFITS[i];
+    $('varSkA').setAttribute('stop-color', o.sk[0]);
+    $('varSkB').setAttribute('stop-color', o.sk[1]);
+    $('varBlouse').setAttribute('fill', o.blouse);
+    $('sabA').setAttribute('stop-color', o.sab[0]);
+    $('sabB').setAttribute('stop-color', o.sab[1]);
+    $('sabC').setAttribute('stop-color', o.sab[2]);
+    $('varHem').setAttribute('stroke', o.hem);
+    $('varDash').setAttribute('stroke', o.dash);
+  }
+  function applyAcc(id, on) {
+    const el = $(id);
+    if (el) el.classList.toggle('acc-hidden', !on);
+  }
+
+  function popChar(el) {
+    el.classList.remove('happy-pop');
+    void el.offsetWidth;
+    el.classList.add('happy-pop');
+  }
+  function emoteOn(el, text) {
+    const pop = document.createElement('div');
+    pop.className = 'emote-pop';
+    pop.textContent = text;
+    el.appendChild(pop);
+    setTimeout(() => pop.remove(), 1500);
+  }
+
+  function applyHair(who, idx) {
+    const h = (who === 'oat' ? OAT_HAIRS : VAR_HAIRS)[idx];
+    if (!h) return;
+    $(who === 'oat' ? 'oatHairA' : 'varHairA').setAttribute('stop-color', h.a);
+    $(who === 'oat' ? 'oatHairB' : 'varHairB').setAttribute('stop-color', h.b);
+  }
+
+  function renderDressPanel() {
+    const outfits = dressWho === 'oat' ? OAT_OUTFITS : VAR_OUTFITS;
+    const hairs = dressWho === 'oat' ? OAT_HAIRS : VAR_HAIRS;
+    const accs = dressWho === 'oat' ? OAT_ACCS : VAR_ACCS;
+    const st = dressState[dressWho];
+
+    const oBox = $('dressOutfits');
+    oBox.innerHTML = '';
+    outfits.forEach((o, idx) => {
+      const b = document.createElement('button');
+      b.className = 'color-chip';
+      b.setAttribute('aria-pressed', String(idx === st.outfit));
+      const c1 = dressWho === 'oat' ? o.a : o.d1;
+      const c2 = dressWho === 'oat' ? o.sash : o.d2;
+      b.innerHTML = `<span class="dot" style="background:linear-gradient(135deg, ${c1} 50%, ${c2} 50%)"></span>${o.n}`;
+      b.onclick = () => {
+        st.outfit = idx;
+        if (dressWho === 'oat') applyOatOutfit(idx); else applyVarOutfit(idx);
+        popChar(dressWho === 'oat' ? charOat : charVar);
+        if (dressWho === 'var') emoteOn(charVar, `ชุด${o.n}น่ารักมั้ย ✨`);
+        playTone(dressWho === 'oat' ? 659.25 : 783.99, 0.2, 'sine', 0.04);
+        renderDressPanel();
+      };
+      oBox.appendChild(b);
+    });
+
+    const hBox = $('dressHair');
+    hBox.innerHTML = '';
+    hairs.forEach((h, idx) => {
+      const b = document.createElement('button');
+      b.className = 'color-chip';
+      b.setAttribute('aria-pressed', String(idx === st.hair));
+      b.innerHTML = `<span class="dot" style="background:${h.a}"></span>${h.n}`;
+      b.onclick = () => {
+        st.hair = idx;
+        applyHair(dressWho, idx);
+        popChar(dressWho === 'oat' ? charOat : charVar);
+        playTone(740, 0.2, 'sine', 0.04);
+        renderDressPanel();
+      };
+      hBox.appendChild(b);
+    });
+
+    const aBox = $('dressAcc');
+    aBox.innerHTML = '';
+    accs.forEach((a) => {
+      const b = document.createElement('button');
+      b.className = 'color-chip';
+      b.setAttribute('aria-pressed', String(!!st.acc[a.id]));
+      b.textContent = a.n;
+      b.onclick = () => {
+        st.acc[a.id] = !st.acc[a.id];
+        applyAcc(a.id, st.acc[a.id]);
+        popChar(dressWho === 'oat' ? charOat : charVar);
+        if (dressWho === 'var' && st.acc[a.id]) emoteOn(charVar, 'น่ารักจังเลย ✨');
+        playTone(880, 0.2, 'sine', 0.04);
+        renderDressPanel();
+      };
+      aBox.appendChild(b);
+    });
+
+    document.querySelectorAll('.dress-tab').forEach((t2) => t2.classList.toggle('on', t2.dataset.who === dressWho));
+  }
+
+  $('btnRandomLook').onclick = () => {
+    const outfits = dressWho === 'oat' ? OAT_OUTFITS : VAR_OUTFITS;
+    const hairs = dressWho === 'oat' ? OAT_HAIRS : VAR_HAIRS;
+    const accs = dressWho === 'oat' ? OAT_ACCS : VAR_ACCS;
+    const st = dressState[dressWho];
+
+    st.outfit = Math.floor(Math.random() * outfits.length);
+    st.hair = Math.floor(Math.random() * hairs.length);
+    if (dressWho === 'oat') applyOatOutfit(st.outfit); else applyVarOutfit(st.outfit);
+    applyHair(dressWho, st.hair);
+
+    accs.forEach((a) => {
+      const on = Math.random() < 0.38;
+      st.acc[a.id] = on;
+      applyAcc(a.id, on);
+    });
+    if (!accs.some((a) => st.acc[a.id])) {
+      const pick = accs[Math.floor(Math.random() * accs.length)];
+      st.acc[pick.id] = true;
+      applyAcc(pick.id, true);
+    }
+
+    const targetEl = dressWho === 'oat' ? charOat : charVar;
+    popChar(targetEl);
+    emoteOn(targetEl, dressWho === 'var' ? 'ลุคนี้เป็นไงบ้าง 🌸' : 'พร้อมลอยกระทง! ✨');
+    playTone(659.25, 0.2, 'sine', 0.045);
+    playTone(880, 0.28, 'sine', 0.04, 0.08);
+    renderDressPanel();
+  };
+
+  function setDressOpen(open) {
+    $('dressPanel').classList.toggle('hide', !open);
+    $('btnDress').classList.toggle('active', open);
+    document.body.classList.toggle('dressing', open);
+    if (open) renderDressPanel();
+  }
+  $('btnDress').onclick = () => setDressOpen($('dressPanel').classList.contains('hide'));
+  $('dressClose').onclick = () => setDressOpen(false);
+  document.querySelectorAll('.dress-tab').forEach((tab) => {
+    tab.onclick = () => {
+      dressWho = tab.dataset.who;
+      renderDressPanel();
+    };
+  });
+  [['oat', charOat], ['var', charVar]].forEach(([who, el]) => {
+    el.addEventListener('click', () => {
+      if (!$('dressPanel').classList.contains('hide')) {
+        dressWho = who;
+        renderDressPanel();
+      }
+    });
+  });
+
+  // =========================================================================
+  // ร้านค้าริมฝั่ง (แตะได้)
+  // =========================================================================
+  document.querySelectorAll('.stall').forEach((stall) => {
+    stall.addEventListener('click', () => {
+      if (stall.dataset.kind === 'krathong') {
+        const chips = Array.from(document.querySelectorAll('#colorPick .color-chip'));
+        const cur = chips.findIndex((c) => c.getAttribute('aria-pressed') === 'true');
+        const next = chips[(cur + 1) % chips.length];
+        next.click();
+        const label = next.textContent.trim();
+        showStarWishToast(`🪷 ร้านกระทงเปลี่ยนให้เป็นสี${label}`);
+        popChar(charOat);
+        return;
+      }
+      showStarWishToast(stall.dataset.msg);
+      popChar(charOat);
+      popChar(charVar);
+      emoteOn(charOat, 'เอ้า ลองชิมสิ 😋');
+      emoteOn(charVar, 'อร่อยยย 😋');
+      playTone(698.46, 0.25, 'sine', 0.045);
+      playTone(880, 0.3, 'sine', 0.04, 0.09);
+    });
+  });
+
+  // ลำดับหน้า: เมนูชวน -> แต่งตัว -> ฉากลอยกระทง
+  document.getElementById('menuGo').onclick = () => {
+    document.getElementById('menuScreen').classList.add('hide');
+    document.body.classList.replace('phase-menu', 'phase-dress');
+    dressWho = 'var';
+    setDressOpen(true);
+    popChar(charVar);
+    emoteOn(charVar, 'แต่งตัวก่อนไปกันนะ 🎀');
+    playTone(659.25, 0.22, 'sine', 0.045);
+  };
+  document.getElementById('dressGo').onclick = () => {
+    setDressOpen(false);
+    document.body.classList.remove('phase-dress');
+    popChar(charOat);
+    popChar(charVar);
+    playTone(880, 0.25, 'sine', 0.045);
+  };
+
+  // ปิดการ์ดเพื่อกลับมาชมวิว / จุดพลุ / ปล่อยโคมต่อ หรือเปิดการ์ดอ่านซ้ำ
+  const cardOverlay = document.getElementById('cardOverlay');
+  document.getElementById('btnCloseCard').onclick = () => {
+    cardOverlay.style.display = 'none';
+  };
+  document.getElementById('btnReopenCard').onclick = () => {
+    cardOverlay.style.display = 'flex';
+  };
+})();
+</script>
+</body>
+</html>
