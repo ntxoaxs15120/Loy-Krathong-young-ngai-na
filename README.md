@@ -1,1 +1,0 @@
-# Loy-Krathong-young-ngai-na
